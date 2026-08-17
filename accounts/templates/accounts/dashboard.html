@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Dashboard - VyapaarX</title>
+</head>
+<body>
+
+    <h1>VyapaarX Dashboard</h1>
+
+    <h2>Welcome, {{ request.user.get_username }}!</h2>
+
+    <p>Your account is successfully logged in.</p>
+
+    <ul>
+        <li>Username: {{ request.user.username }}</li>
+        <li>Email: {{ request.user.email }}</li>
+        <li>First Name: {{ request.user.first_name }}</li>
+        <li>Last Name: {{ request.user.last_name }}</li>
+    </ul>
+
+    <p>
+        <a href="{% url 'accounts:profile' %}">
+            My Profile
+        </a>
+    </p>
+
+    <p>
+        <a href="{% url 'accounts:security' %}">
+            Account Security
+        </a>
+    </p>
+
+    <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+
+</body>
+</html>
