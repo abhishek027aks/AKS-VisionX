@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - VyapaarX</title>
+</head>
+<body>
+    <h1>VyapaarX</h1>
+    <h2>My Profile</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <p><strong>Username:</strong> {{ request.user.username }}</p>
+
+    {% if request.user.profile.profile_image %}
+        <img
+            src="{{ request.user.profile.profile_image.url }}"
+            alt="Profile Image"
+            width="150"
+        >
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <h3>Account Information</h3>
+        {{ user_form.as_p }}
+
+        <h3>Profile Information</h3>
+        {{ profile_form.as_p }}
+
+        <button type="submit">Save Profile</button>
+    </form>
+
+    <p>
+        <a href="{% url 'accounts:dashboard' %}">
+            Back to Dashboard
+        </a>
+    </p>
+</body>
+</html>
