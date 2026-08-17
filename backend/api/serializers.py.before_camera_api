@@ -1,0 +1,31 @@
+﻿from rest_framework import serializers
+
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "is_staff",
+            "is_superuser",
+            "is_active",
+            "organization",
+            "roles",
+        ]
+        read_only_fields = fields
+
+    def get_roles(self, obj):
+        return list(
+            obj.groups.values_list("name", flat=True).order_by("name")
+        )

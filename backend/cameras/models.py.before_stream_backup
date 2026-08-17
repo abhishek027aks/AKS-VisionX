@@ -1,0 +1,110 @@
+﻿from django.conf import settings
+from django.db import models
+
+
+class Camera(models.Model):
+    class ConnectionType(models.TextChoices):
+        ONVIF = "ONVIF", "ONVIF"
+        RTSP = "RTSP", "RTSP"
+        NVR = "NVR", "NVR"
+        LOCAL = "LOCAL", "Local"
+        OTHER = "OTHER", "Other"
+
+    class Status(models.TextChoices):
+        UNKNOWN = "UNKNOWN", "Unknown"
+        ONLINE = "ONLINE", "Online"
+        OFFLINE = "OFFLINE", "Offline"
+        ERROR = "ERROR", "Error"
+
+    organization = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="cameras",
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_cameras",
+    )
+
+    name = models.CharField(max_length=200)
+
+    manufacturer = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    model = models.CharField(
+        max_length=150,
+        blank=True,
+    )
+
+    serial_number = models.CharField(
+        max_length=150,
+        blank=True,
+    )
+
+    connection_type = models.CharField(
+        max_length=20,
+        choices=ConnectionType.choices,
+        default=ConnectionType.RTSP,
+    )
+
+    host = models.CharField(
+        max_length=255,
+        blank=True,
+    )
+
+    port = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    username = models.CharField(
+        max_length=150,
+        blank=True,
+    )
+
+    # Temporary foundation field.
+    # Actual credential encryption will be implemented
+    # in the Security Foundation phase.
+    credential = models.TextField(
+        blank=True,
+    )
+
+    onvif_supported = models.BooleanField(default=False)
+    rtsp_supported = models.BooleanField(default=False)
+    ptz_supported = models.BooleanField(default=False)
+    audio_supported = models.BooleanField(default=False)
+    ai_supported = models.BooleanField(default=False)
+
+    enabled = models.BooleanField(default=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.UNKNOWN,
+    )
+
+    last_seen = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="unique_camera_name_per_organization",
+            )
+        ]
+
+    def __str__(self):
+        return self.name

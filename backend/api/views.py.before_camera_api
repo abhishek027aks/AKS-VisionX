@@ -1,0 +1,77 @@
+﻿from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+
+from .permissions import (
+    IsAdminOrSuperAdmin,
+    IsOperatorOrAbove,
+    IsSuperAdmin,
+    IsViewerOrAbove,
+)
+from .serializers import CurrentUserSerializer
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def health_check(request):
+    return Response(
+        {
+            "status": "ok",
+            "service": "AKS VisionX API",
+            "version": "1.0.0",
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def current_user(request):
+    return Response(CurrentUserSerializer(request.user).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsViewerOrAbove])
+def viewer_test(request):
+    return Response(
+        {
+            "status": "ok",
+            "permission": "viewer_or_above",
+            "user": request.user.username,
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsOperatorOrAbove])
+def operator_test(request):
+    return Response(
+        {
+            "status": "ok",
+            "permission": "operator_or_above",
+            "user": request.user.username,
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAdminOrSuperAdmin])
+def admin_test(request):
+    return Response(
+        {
+            "status": "ok",
+            "permission": "admin_or_super_admin",
+            "user": request.user.username,
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsSuperAdmin])
+def super_admin_test(request):
+    return Response(
+        {
+            "status": "ok",
+            "permission": "super_admin",
+            "user": request.user.username,
+        }
+    )
