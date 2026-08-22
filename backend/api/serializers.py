@@ -1,11 +1,16 @@
-﻿from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from urllib.parse import urlparse
 
 from cameras.models import Camera, CameraStream
 from events.models import (
+    Detection,
+    TrackingPoint,
+    TrackingLocation,
+    TrackingCameraVisit,
     Event,
     IdentityMatch,
     PersonProfile,
@@ -91,6 +96,12 @@ class CameraStreamSerializer(serializers.ModelSerializer):
 
 class CameraSerializer(serializers.ModelSerializer):
     streams = CameraStreamSerializer(many=True, read_only=True)
+    main_stream_url = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+    )
+    main_stream = serializers.SerializerMethodField()
 
     credential_encrypted = serializers.CharField(
         write_only=True,
@@ -116,16 +127,21 @@ class CameraSerializer(serializers.ModelSerializer):
             "manufacturer",
             "model",
             "serial_number",
+            "description",
+            "location",
             "connection_type",
             "host",
             "port",
             "username",
             "credential_encrypted",
+            "main_stream_url",
+            "main_stream",
             "onvif_supported",
             "rtsp_supported",
             "ptz_supported",
             "audio_supported",
             "ai_supported",
+            "recording_enabled",
             "enabled",
             "status",
             "last_seen",
@@ -140,14 +156,122 @@ class CameraSerializer(serializers.ModelSerializer):
             "status",
             "last_seen",
             "streams",
+            "main_stream",
             "created_at",
             "updated_at",
         ]
+
+    def get_main_stream(self, obj):
+        stream = (
+            obj.streams
+            .filter(
+                stream_type=CameraStream.StreamType.MAIN,
+                enabled=True,
+            )
+            .first()
+        )
+
+        if stream is None:
+            return None
+
+        return CameraStreamSerializer(stream).data
+
+    def validate_main_stream_url(self, value):
+        value = value.strip()
+
+        if not value:
+            return value
+
+        parsed = urlparse(value)
+
+        if parsed.scheme.lower() not in ["rtsp", "http", "https"]:
+            raise serializers.ValidationError(
+                "Stream URL must start with rtsp://, http://, or https://."
+            )
+
+        if not parsed.netloc:
+            raise serializers.ValidationError(
+                "Stream URL must include a host."
+            )
+
+        return value
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = request.user if request else None
+
+        if (
+            self.instance is None
+            and user
+            and user.is_authenticated
+            and not user.groups.filter(name="Super Admin").exists()
+            and not user.organization_id
+        ):
+            raise serializers.ValidationError(
+                {
+                    "organization": (
+                        "User is not assigned to an organization."
+                    )
+                }
+            )
+
+        return attrs
+
+    def _sync_main_stream(self, camera, stream_url):
+        if stream_url is None:
+            return
+
+        stream_url = stream_url.strip()
+
+        stream = (
+            camera.streams
+            .filter(stream_type=CameraStream.StreamType.MAIN)
+            .first()
+        )
+
+        if not stream_url:
+            if stream is not None:
+                stream.enabled = False
+                stream.save(update_fields=["enabled", "updated_at"])
+            return
+
+        protocol = (
+            CameraStream.Protocol.RTSP
+            if stream_url.lower().startswith("rtsp://")
+            else CameraStream.Protocol.HTTP
+        )
+
+        if stream is None:
+            CameraStream.objects.create(
+                camera=camera,
+                name="Main Stream",
+                stream_type=CameraStream.StreamType.MAIN,
+                protocol=protocol,
+                url=stream_url,
+                enabled=True,
+            )
+            return
+
+        stream.url = stream_url
+        stream.protocol = protocol
+        stream.enabled = True
+        stream.save(
+            update_fields=[
+                "url",
+                "protocol",
+                "enabled",
+                "updated_at",
+            ]
+        )
 
     def create(self, validated_data):
         credential = validated_data.pop(
             "credential_encrypted",
             "",
+        )
+        main_stream_url = validated_data.pop(
+            "main_stream_url",
+            None,
         )
 
         request = self.context["request"]
@@ -163,6 +287,7 @@ class CameraSerializer(serializers.ModelSerializer):
             camera.set_credential(credential)
 
         camera.save()
+        self._sync_main_stream(camera, main_stream_url)
 
         return camera
 
@@ -171,14 +296,19 @@ class CameraSerializer(serializers.ModelSerializer):
             "credential_encrypted",
             None,
         )
+        main_stream_url = validated_data.pop(
+            "main_stream_url",
+            None,
+        )
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        if credential is not None:
+        if credential:
             instance.set_credential(credential)
 
         instance.save()
+        self._sync_main_stream(instance, main_stream_url)
 
         return instance
 
@@ -283,6 +413,179 @@ class IdentityMatchSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = request.user if request else None
+
+        tracking_session = attrs.get(
+            "tracking_session",
+            getattr(self.instance, "tracking_session", None),
+        )
+
+        person_profile = attrs.get(
+            "person_profile",
+            getattr(self.instance, "person_profile", None),
+        )
+
+        vehicle_profile = attrs.get(
+            "vehicle_profile",
+            getattr(self.instance, "vehicle_profile", None),
+        )
+
+        if tracking_session is None:
+            raise serializers.ValidationError(
+                {
+                    "tracking_session": (
+                        "Tracking session is required."
+                    )
+                }
+            )
+
+        # Super Admin can work across organizations.
+        is_super_admin = (
+            user
+            and user.is_authenticated
+            and user.groups.filter(
+                name="Super Admin"
+            ).exists()
+        )
+
+        if not is_super_admin:
+            organization_id = getattr(
+                user,
+                "organization_id",
+                None,
+            )
+
+            if not organization_id:
+                raise serializers.ValidationError(
+                    {
+                        "organization": (
+                            "User is not assigned to an organization."
+                        )
+                    }
+                )
+
+            if tracking_session.organization_id != organization_id:
+                raise serializers.ValidationError(
+                    {
+                        "tracking_session": (
+                            "You cannot use a tracking session "
+                            "from another organization."
+                        )
+                    }
+                )
+
+            if (
+                person_profile is not None
+                and person_profile.organization_id != organization_id
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "person_profile": (
+                            "You cannot use a person profile "
+                            "from another organization."
+                        )
+                    }
+                )
+
+            if (
+                vehicle_profile is not None
+                and vehicle_profile.organization_id != organization_id
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "vehicle_profile": (
+                            "You cannot use a vehicle profile "
+                            "from another organization."
+                        )
+                    }
+                )
+
+        # Linked profiles must belong to the same organization
+        # as the tracking session.
+        tracking_organization_id = (
+            tracking_session.organization_id
+        )
+
+        if (
+            person_profile is not None
+            and person_profile.organization_id
+            != tracking_organization_id
+        ):
+            raise serializers.ValidationError(
+                {
+                    "person_profile": (
+                        "Person profile must belong to the "
+                        "same organization as the tracking session."
+                    )
+                }
+            )
+
+        if (
+            vehicle_profile is not None
+            and vehicle_profile.organization_id
+            != tracking_organization_id
+        ):
+            raise serializers.ValidationError(
+                {
+                    "vehicle_profile": (
+                        "Vehicle profile must belong to the "
+                        "same organization as the tracking session."
+                    )
+                }
+            )
+
+        # Identity type must match the linked profile.
+        identity_type = attrs.get(
+            "identity_type",
+            getattr(self.instance, "identity_type", None),
+        )
+
+        if identity_type == IdentityMatch.IdentityType.PERSON:
+            if person_profile is None:
+                raise serializers.ValidationError(
+                    {
+                        "person_profile": (
+                            "Person profile is required for "
+                            "PERSON identity matches."
+                        )
+                    }
+                )
+
+            if vehicle_profile is not None:
+                raise serializers.ValidationError(
+                    {
+                        "vehicle_profile": (
+                            "Vehicle profile cannot be used for "
+                            "PERSON identity matches."
+                        )
+                    }
+                )
+
+        elif identity_type == IdentityMatch.IdentityType.VEHICLE:
+            if vehicle_profile is None:
+                raise serializers.ValidationError(
+                    {
+                        "vehicle_profile": (
+                            "Vehicle profile is required for "
+                            "VEHICLE identity matches."
+                        )
+                    }
+                )
+
+            if person_profile is not None:
+                raise serializers.ValidationError(
+                    {
+                        "person_profile": (
+                            "Person profile cannot be used for "
+                            "VEHICLE identity matches."
+                        )
+                    }
+                )
+
+        return attrs
+
     def get_person(self, obj):
         if not obj.person_profile_id:
             return None
@@ -385,7 +688,7 @@ class EventSerializer(serializers.ModelSerializer):
     def validate_status(self, status):
         instance = self.instance
 
-        # CREATE: Event हमेशा NEW से शुरू होगा.
+        # CREATE: Event ????? NEW ?? ???? ????.
         if instance is None:
             if status != Event.Status.NEW:
                 raise serializers.ValidationError(
@@ -513,3 +816,95 @@ class LoginTokenObtainPairSerializer(TokenObtainPairSerializer):
         )
 
         return data
+
+
+class DetectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Detection
+        fields = [
+            "id",
+            "organization",
+            "camera",
+            "event",
+            "object_type",
+            "label",
+            "confidence",
+            "tracking_id",
+            "status",
+            "first_seen_at",
+            "last_seen_at",
+            "bbox_x",
+            "bbox_y",
+            "bbox_width",
+            "bbox_height",
+            "metadata",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class TrackingPointSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrackingPoint
+        fields = [
+            "id",
+            "tracking_session",
+            "camera",
+            "occurred_at",
+            "x",
+            "y",
+            "width",
+            "height",
+            "confidence",
+            "zone",
+            "metadata",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class TrackingLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrackingLocation
+        fields = [
+            "id",
+            "tracking_session",
+            "camera",
+            "zone",
+            "entered_at",
+            "exited_at",
+            "duration_seconds",
+            "first_x",
+            "first_y",
+            "last_x",
+            "last_y",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class TrackingCameraVisitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrackingCameraVisit
+        fields = [
+            "id",
+            "tracking_session",
+            "camera",
+            "entered_at",
+            "exited_at",
+            "duration_seconds",
+            "first_x",
+            "first_y",
+            "last_x",
+            "last_y",
+            "detection_count",
+            "metadata",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+

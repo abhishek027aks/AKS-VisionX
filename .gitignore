@@ -2,36 +2,45 @@
 __pycache__/
 *.py[cod]
 *.pyo
-*.pyd
+
+# Virtual environments
 .venv/
+.venv-ai/
 venv/
 env/
 
-# Django
-*.log
-db.sqlite3
-media/
-staticfiles/
+# Django database runtime files
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 
-# Environment / secrets
+# Backup files
+*.bak
+*.bak2
+*.before-*
+*_backup_*/
+phase*_backup_*/
+
+# AI model weights
+*.pt
+*.onnx
+*.engine
+
+# Test images
+bus.jpg
+yolo_test.jpg
+
+# Logs
+*.log
+
+# Environment files
 .env
 .env.*
-!.env.example
 
-# IDE
-.vscode/
-.idea/
+# Frontend dependencies/build
+frontend/node_modules/
+frontend/dist/
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Test / coverage
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Local recordings and exports
-recordings/
-exports/
-snapshots/

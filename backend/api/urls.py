@@ -5,9 +5,20 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from alerts.views import AlertViewSet
+from api.recording_views import RecordingViewSet, StorageLocationViewSet
+from streaming.views import (
+    CameraLiveTokenView,
+    CameraMJPEGView,
+)
+
 from .views import (
     CameraStreamViewSet,
     CameraViewSet,
+    DetectionViewSet,
+    TrackingPointViewSet,
+    TrackingLocationViewSet,
+    TrackingCameraVisitViewSet,
     EventViewSet,
     IdentityMatchViewSet,
     PersonProfileViewSet,
@@ -26,6 +37,9 @@ from .views import (
 
 
 router = DefaultRouter()
+
+router.register(r'recordings', RecordingViewSet, basename='recording')
+router.register(r'storage-locations', StorageLocationViewSet, basename='storage-location')
 
 router.register(
     "cameras",
@@ -61,6 +75,36 @@ router.register(
     "events",
     EventViewSet,
     basename="event",
+)
+
+router.register(
+    "alerts",
+    AlertViewSet,
+    basename="alert",
+)
+
+router.register(
+    "detections",
+    DetectionViewSet,
+    basename="detection",
+)
+
+router.register(
+    "tracking-points",
+    TrackingPointViewSet,
+    basename="tracking-point",
+)
+
+router.register(
+    "tracking-locations",
+    TrackingLocationViewSet,
+    basename="tracking-location",
+)
+
+router.register(
+    "tracking-camera-visits",
+    TrackingCameraVisitViewSet,
+    basename="tracking-camera-visit",
 )
 
 
@@ -101,7 +145,7 @@ urlpatterns = [
         name="auth-change-password",
     ),
 
-        path(
+    path(
         "me/",
         current_user,
         name="current-user",
@@ -132,15 +176,19 @@ urlpatterns = [
     ),
 
     path(
+        "cameras/<int:camera_id>/live-token/",
+        CameraLiveTokenView.as_view(),
+        name="camera-live-token",
+    ),
+
+    path(
+        "cameras/<int:camera_id>/live/",
+        CameraMJPEGView.as_view(),
+        name="camera-live",
+    ),
+
+    path(
         "",
         include(router.urls),
     ),
 ]
-
-
-
-
-
-
-
-

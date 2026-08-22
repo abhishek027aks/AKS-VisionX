@@ -1,0 +1,216 @@
+import time
+
+import cv2
+from django.core import signing
+from django.http import (
+    HttpResponseForbidden,
+    JsonResponse,
+    StreamingHttpResponse,
+)
+from django.shortcuts import get_object_or_404
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.views import APIView
+
+from cameras.models import Camera, CameraStream
+from streaming.camera_monitor_manager import CameraMonitorManager
+
+
+LIVE_TOKEN_SALT = "aks-visionx-live-stream"
+LIVE_TOKEN_MAX_AGE = 60
+
+
+def _camera_access_allowed(request, camera):
+    if not request.user.groups.filter(name="Super Admin").exists():
+        if (
+            not request.user.organization_id
+            or camera.organization_id != request.user.organization_id
+        ):
+            return False
+    return True
+
+
+class CameraLiveTokenView(APIView):
+    """
+    Create a short-lived signed token for the browser MJPEG viewer.
+
+    The normal JWT is sent in the Authorization header to this endpoint.
+    The resulting short-lived signed token is then used only by the
+    browser <img> request because browsers do not let <img> add a
+    custom Authorization header.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, camera_id):
+        camera = get_object_or_404(Camera, id=camera_id)
+
+        if not _camera_access_allowed(request, camera):
+            return HttpResponseForbidden(
+                "You cannot access this camera."
+            )
+
+        stream = (
+            camera.streams
+            .filter(
+                stream_type=CameraStream.StreamType.MAIN,
+                enabled=True,
+            )
+            .first()
+        )
+
+        if stream is None:
+            return JsonResponse(
+                {
+                    "detail": (
+                        "No enabled main camera "
+                        "stream is available."
+                    )
+                },
+                status=400,
+            )
+
+        token = signing.dumps(
+            {
+                "user_id": request.user.id,
+                "camera_id": camera.id,
+            },
+            salt=LIVE_TOKEN_SALT,
+        )
+
+        return JsonResponse(
+            {
+                "token": token,
+                "expires_in": LIVE_TOKEN_MAX_AGE,
+            }
+        )
+
+
+class CameraMJPEGView(APIView):
+    """
+    Stream a camera as MJPEG to the browser.
+
+    Browser:
+        GET /api/cameras/<camera_id>/live/?access_token=<short-lived-token>
+
+    The RTSP credentials remain server-side.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, camera_id):
+        access_token = request.query_params.get("access_token", "")
+
+        if not access_token:
+            return JsonResponse(
+                {"detail": "Live stream access token is required."},
+                status=401,
+            )
+
+        try:
+            payload = signing.loads(
+                access_token,
+                salt=LIVE_TOKEN_SALT,
+                max_age=LIVE_TOKEN_MAX_AGE,
+            )
+        except signing.BadSignature:
+            return JsonResponse(
+                {"detail": "Invalid or expired live stream token."},
+                status=401,
+            )
+
+        if int(payload.get("camera_id", -1)) != int(camera_id):
+            return JsonResponse(
+                {"detail": "Live stream token does not match camera."},
+                status=403,
+            )
+
+        camera = get_object_or_404(
+            Camera.objects.prefetch_related("streams"),
+            id=camera_id,
+        )
+
+        main_stream = (
+            camera.streams
+            .filter(
+                stream_type=CameraStream.StreamType.MAIN,
+                enabled=True,
+            )
+            .first()
+        )
+
+        if main_stream is None:
+            return JsonResponse(
+                {
+                    "detail": (
+                        "No enabled main camera "
+                        "stream is available."
+                    )
+                },
+                status=400,
+            )
+
+        stream_url = (
+            CameraMonitorManager
+            ._build_authenticated_stream_url(
+                camera,
+                main_stream.url,
+            )
+        )
+
+        def generate():
+            capture = cv2.VideoCapture(
+                stream_url,
+                cv2.CAP_FFMPEG,
+            )
+
+            # Keep the OpenCV read loop bounded. A failed read ends this
+            # HTTP stream; the frontend can request a fresh short-lived
+            # token and reconnect.
+            try:
+                if not capture.isOpened():
+                    return
+
+                while True:
+                    success, frame = capture.read()
+
+                    if not success or frame is None:
+                        break
+
+                    success, encoded = cv2.imencode(
+                        ".jpg",
+                        frame,
+                        [
+                            cv2.IMWRITE_JPEG_QUALITY,
+                            80,
+                        ],
+                    )
+
+                    if not success:
+                        continue
+
+                    yield (
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n"
+                        b"Cache-Control: no-cache\r\n\r\n"
+                        + encoded.tobytes()
+                        + b"\r\n"
+                    )
+
+                    time.sleep(0.03)
+
+            finally:
+                capture.release()
+
+        response = StreamingHttpResponse(
+            generate(),
+            content_type=(
+                "multipart/x-mixed-replace; "
+                "boundary=frame"
+            ),
+        )
+
+        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response["Pragma"] = "no-cache"
+        response["X-Content-Type-Options"] = "nosniff"
+
+        return response

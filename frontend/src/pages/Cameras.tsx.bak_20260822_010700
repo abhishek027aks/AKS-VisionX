@@ -1,0 +1,1047 @@
+﻿import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+
+import {
+  getCameraStatus,
+  getCameras,
+  startCamera,
+  stopCamera,
+} from '../services/cameraService'
+
+import type { Camera } from '../types/camera'
+
+import './Cameras.css'
+
+
+type ViewMode = 'fit' | 'fill'
+
+type CameraViewerState = {
+  rotation: number
+  zoom: number
+  viewMode: ViewMode
+  retry: number
+}
+
+
+function Cameras() {
+  const token =
+    localStorage.getItem('aks_token') || ''
+
+  const [cameras, setCameras] =
+    useState<Camera[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [actionId, setActionId] =
+    useState<number | null>(null)
+
+  const [message, setMessage] =
+    useState('')
+
+  const [error, setError] =
+    useState('')
+
+  const [streamErrors, setStreamErrors] =
+    useState<Record<number, boolean>>({})
+
+  const [viewerState, setViewerState] =
+    useState<Record<number, CameraViewerState>>({})
+
+  const [fullscreenCamera, setFullscreenCamera] =
+    useState<number | null>(null)
+
+  const reconnectTimers =
+    useRef<Record<number, number>>({})
+
+
+  const loadCameras = useCallback(
+    async () => {
+      if (!token) return
+
+      try {
+        const data =
+          await getCameras(token)
+
+        setCameras(data)
+
+        setError('')
+      } catch (err: any) {
+        console.error(
+          'CAMERA LOAD ERROR:',
+          err,
+        )
+
+        if (
+          err?.response?.status === 401
+        ) {
+          localStorage.removeItem(
+            'aks_token',
+          )
+
+          window.location.reload()
+
+          return
+        }
+
+        setError(
+          'Unable to load cameras.',
+        )
+      } finally {
+        setLoading(false)
+      }
+    },
+    [token],
+  )
+
+
+  const refreshStatus = useCallback(
+    async (cameraList: Camera[]) => {
+      if (!token) return
+
+      const updated =
+        await Promise.all(
+          cameraList.map(
+            async (camera) => {
+              try {
+                const status =
+                  await getCameraStatus(
+                    token,
+                    camera.id,
+                  )
+
+                return {
+                  ...camera,
+                  ...status,
+                }
+              } catch {
+                return camera
+              }
+            },
+          ),
+        )
+
+      setCameras((current) =>
+        current.map((camera) => {
+          const fresh =
+            updated.find(
+              (item) =>
+                item.id === camera.id,
+            )
+
+          return fresh || camera
+        }),
+      )
+    },
+    [token],
+  )
+
+
+  useEffect(() => {
+    loadCameras()
+  }, [loadCameras])
+
+
+  useEffect(() => {
+    if (!cameras.length) return
+
+    refreshStatus(cameras)
+
+    const interval =
+      window.setInterval(() => {
+        refreshStatus(cameras)
+      }, 5000)
+
+    return () =>
+      window.clearInterval(interval)
+  }, [
+    cameras,
+    refreshStatus,
+  ])
+
+
+  useEffect(() => {
+    const handleFullscreenChange =
+      () => {
+        if (
+          !document.fullscreenElement
+        ) {
+          setFullscreenCamera(null)
+        }
+      }
+
+    document.addEventListener(
+      'fullscreenchange',
+      handleFullscreenChange,
+    )
+
+    return () =>
+      document.removeEventListener(
+        'fullscreenchange',
+        handleFullscreenChange,
+      )
+  }, [])
+
+
+  const getState = (
+    cameraId: number,
+  ): CameraViewerState => {
+    return (
+      viewerState[cameraId] || {
+        rotation: 0,
+        zoom: 1,
+        viewMode: 'fit',
+        retry: 0,
+      }
+    )
+  }
+
+
+  const updateViewer = (
+    cameraId: number,
+    changes: Partial<CameraViewerState>,
+  ) => {
+    setViewerState((current) => ({
+      ...current,
+      [cameraId]: {
+        ...getState(cameraId),
+        ...changes,
+      },
+    }))
+  }
+
+
+  const resetViewer = (
+    cameraId: number,
+  ) => {
+    updateViewer(cameraId, {
+      rotation: 0,
+      zoom: 1,
+      viewMode: 'fit',
+    })
+  }
+
+
+  const rotateCamera = (
+    cameraId: number,
+    amount: number,
+  ) => {
+    const current =
+      getState(cameraId)
+
+    updateViewer(cameraId, {
+      rotation:
+        (current.rotation + amount + 360) %
+        360,
+    })
+  }
+
+
+  const changeZoom = (
+    cameraId: number,
+    amount: number,
+  ) => {
+    const current =
+      getState(cameraId)
+
+    const next = Math.min(
+      3,
+      Math.max(
+        1,
+        Number(
+          (
+            current.zoom + amount
+          ).toFixed(1),
+        ),
+      ),
+    )
+
+    updateViewer(cameraId, {
+      zoom: next,
+    })
+  }
+
+
+  const getLiveUrl = (
+    cameraId: number,
+  ) => {
+    return (
+      `/api/cameras/${cameraId}/live/` +
+      `?token=${encodeURIComponent(token)}` +
+      `&t=${getState(cameraId).retry}`
+    )
+  }
+
+
+  const retryStream = (
+    cameraId: number,
+  ) => {
+    setStreamErrors((current) => ({
+      ...current,
+      [cameraId]: false,
+    }))
+
+    updateViewer(cameraId, {
+      retry:
+        getState(cameraId).retry + 1,
+    })
+  }
+
+
+  const handleStreamError = (
+    cameraId: number,
+  ) => {
+    setStreamErrors((current) => ({
+      ...current,
+      [cameraId]: true,
+    }))
+
+    if (
+      reconnectTimers.current[cameraId]
+    ) {
+      window.clearTimeout(
+        reconnectTimers.current[cameraId],
+      )
+    }
+
+    reconnectTimers.current[cameraId] =
+      window.setTimeout(() => {
+        retryStream(cameraId)
+      }, 2500)
+  }
+
+
+  const toggleFullscreen =
+    async (
+      cameraId: number,
+    ) => {
+      const element =
+        document.getElementById(
+          `camera-viewer-${cameraId}`,
+        )
+
+      if (!element) return
+
+      try {
+        if (
+          document.fullscreenElement
+        ) {
+          await document.exitFullscreen()
+          setFullscreenCamera(null)
+          return
+        }
+
+        await element.requestFullscreen()
+
+        setFullscreenCamera(cameraId)
+      } catch (err) {
+        console.error(
+          'FULLSCREEN ERROR:',
+          err,
+        )
+      }
+    }
+
+
+  const handleStart = async (
+    cameraId: number,
+  ) => {
+    setActionId(cameraId)
+    setMessage('')
+    setError('')
+
+    try {
+      setStreamErrors((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+
+      const response =
+        await startCamera(
+          token,
+          cameraId,
+        )
+
+      setMessage(
+        `Camera ${cameraId}: ${
+          response?.status ||
+          'started'
+        }`,
+      )
+
+      await loadCameras()
+
+      retryStream(cameraId)
+    } catch (err: any) {
+      console.error(
+        'START ERROR:',
+        err,
+      )
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to start camera ${cameraId}.`,
+      )
+    } finally {
+      setActionId(null)
+    }
+  }
+
+
+  const handleStop = async (
+    cameraId: number,
+  ) => {
+    setActionId(cameraId)
+    setMessage('')
+    setError('')
+
+    try {
+      const response =
+        await stopCamera(
+          token,
+          cameraId,
+        )
+
+      setMessage(
+        `Camera ${cameraId}: ${
+          response?.status ||
+          'stopping'
+        }`,
+      )
+
+      setStreamErrors((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+
+      await loadCameras()
+    } catch (err: any) {
+      console.error(
+        'STOP ERROR:',
+        err,
+      )
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to stop camera ${cameraId}.`,
+      )
+    } finally {
+      setActionId(null)
+    }
+  }
+
+
+  const online =
+    cameras.filter(
+      (camera) =>
+        camera.status === 'ONLINE',
+    ).length
+
+
+  const running =
+    cameras.filter(
+      (camera) =>
+        camera.running === true,
+    ).length
+
+
+  return (
+    <div className="cameras-page">
+
+      <div className="camera-page-header">
+        <div>
+          <h2>
+            Camera Monitoring
+          </h2>
+
+          <p>
+            Live camera status,
+            monitoring and viewer
+            controls.
+          </p>
+        </div>
+
+        <button
+          className="camera-refresh-button"
+          onClick={loadCameras}
+          disabled={loading}
+        >
+          Refresh
+        </button>
+      </div>
+
+
+      <div className="camera-summary">
+
+        <div>
+          <span>
+            Total Cameras
+          </span>
+
+          <strong>
+            {cameras.length}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Online
+          </span>
+
+          <strong className="summary-online">
+            {online}
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Running
+          </span>
+
+          <strong>
+            {running}
+          </strong>
+        </div>
+
+      </div>
+
+
+      {message && (
+        <div className="camera-alert success">
+          {message}
+        </div>
+      )}
+
+
+      {error && (
+        <div className="camera-alert error">
+          {error}
+        </div>
+      )}
+
+
+      {loading ? (
+        <div className="camera-empty">
+          Loading cameras...
+        </div>
+      ) : cameras.length === 0 ? (
+        <div className="camera-empty">
+
+          <div className="camera-empty-icon">
+            CAM
+          </div>
+
+          <h3>
+            No cameras found
+          </h3>
+
+          <p>
+            Add a camera from the
+            backend before starting
+            monitoring.
+          </p>
+
+        </div>
+      ) : (
+
+        <div className="camera-grid-new">
+
+          {cameras.map((camera) => {
+
+            const isOnline =
+              camera.status ===
+              'ONLINE'
+
+            const isRunning =
+              camera.running === true
+
+            const busy =
+              actionId === camera.id
+
+            const streamFailed =
+              streamErrors[
+                camera.id
+              ] === true
+
+            const state =
+              getState(camera.id)
+
+            const showLive =
+              isOnline &&
+              isRunning &&
+              Boolean(token)
+
+            const imageStyle = {
+              transform:
+                `rotate(${state.rotation}deg) ` +
+                `scale(${state.zoom})`,
+            }
+
+            return (
+
+              <article
+                className={`camera-card-new ${
+                  fullscreenCamera ===
+                  camera.id
+                    ? 'camera-card-fullscreen'
+                    : ''
+                }`}
+                key={camera.id}
+              >
+
+                <div
+                  id={`camera-viewer-${camera.id}`}
+                  className="camera-viewer-shell"
+                >
+
+                  <div
+                    className={`camera-preview-new ${
+                      state.viewMode === 'fill'
+                        ? 'view-fill'
+                        : 'view-fit'
+                    }`}
+                  >
+
+                    {showLive &&
+                    !streamFailed ? (
+                      <img
+                        key={
+                          `${camera.id}-${state.retry}`
+                        }
+                        src={getLiveUrl(
+                          camera.id,
+                        )}
+                        alt={`${camera.name || 'Camera'} live stream`}
+                        className="camera-live-image"
+                        style={
+                          imageStyle
+                        }
+                        onError={() =>
+                          handleStreamError(
+                            camera.id,
+                          )
+                        }
+                      />
+                    ) : (
+
+                      <div className="camera-stream-placeholder">
+
+                        <div className="camera-preview-icon">
+                          CAM
+                        </div>
+
+                        <span>
+                          {streamFailed
+                            ? 'LIVE STREAM ERROR'
+                            : isOnline
+                              ? isRunning
+                                ? 'CONNECTING LIVE STREAM'
+                                : 'CAMERA ONLINE'
+                              : 'NO LIVE STREAM'}
+                        </span>
+
+                        {streamFailed && (
+                          <button
+                            className="stream-retry-button"
+                            onClick={() =>
+                              retryStream(
+                                camera.id,
+                              )
+                            }
+                          >
+                            Retry Live
+                          </button>
+                        )}
+
+                      </div>
+                    )}
+
+
+                    <div
+                      className={`camera-status ${
+                        isOnline
+                          ? 'online'
+                          : 'offline'
+                      }`}
+                    >
+                      <span />
+                      {camera.status ||
+                        'UNKNOWN'}
+                    </div>
+
+
+                    {showLive && (
+                      <div className="viewer-toolbar">
+
+                        <button
+                          title="Rotate left"
+                          onClick={() =>
+                            rotateCamera(
+                              camera.id,
+                              -90,
+                            )
+                          }
+                        >
+                          ↶
+                        </button>
+
+                        <button
+                          title="Rotate right"
+                          onClick={() =>
+                            rotateCamera(
+                              camera.id,
+                              90,
+                            )
+                          }
+                        >
+                          ↷
+                        </button>
+
+                        <button
+                          title="Zoom out"
+                          onClick={() =>
+                            changeZoom(
+                              camera.id,
+                              -0.1,
+                            )
+                          }
+                        >
+                          −
+                        </button>
+
+                        <span className="zoom-value">
+                          {Math.round(
+                            state.zoom * 100,
+                          )}%
+                        </span>
+
+                        <button
+                          title="Zoom in"
+                          onClick={() =>
+                            changeZoom(
+                              camera.id,
+                              0.1,
+                            )
+                          }
+                        >
+                          +
+                        </button>
+
+                        <button
+                          title="Fit"
+                          className={
+                            state.viewMode ===
+                            'fit'
+                              ? 'active'
+                              : ''
+                          }
+                          onClick={() =>
+                            updateViewer(
+                              camera.id,
+                              {
+                                viewMode:
+                                  'fit',
+                              },
+                            )
+                          }
+                        >
+                          Fit
+                        </button>
+
+                        <button
+                          title="Fill"
+                          className={
+                            state.viewMode ===
+                            'fill'
+                              ? 'active'
+                              : ''
+                          }
+                          onClick={() =>
+                            updateViewer(
+                              camera.id,
+                              {
+                                viewMode:
+                                  'fill',
+                              },
+                            )
+                          }
+                        >
+                          Fill
+                        </button>
+
+                        <button
+                          title="Reset view"
+                          onClick={() =>
+                            resetViewer(
+                              camera.id,
+                            )
+                          }
+                        >
+                          Reset
+                        </button>
+
+                        <button
+                          title="Full screen"
+                          onClick={() =>
+                            toggleFullscreen(
+                              camera.id,
+                            )
+                          }
+                        >
+                          ⛶
+                        </button>
+
+                      </div>
+                    )}
+
+                  </div>
+
+
+                  {showLive && (
+                    <div className="ptz-panel">
+
+                      <div className="ptz-title">
+                        PTZ / 360° VIEW
+                      </div>
+
+                      <div className="ptz-grid">
+
+                        <button
+                          title="Pan left"
+                          onClick={() =>
+                            rotateCamera(
+                              camera.id,
+                              -15,
+                            )
+                          }
+                        >
+                          ◀
+                        </button>
+
+                        <button
+                          title="Tilt up"
+                          onClick={() =>
+                            updateViewer(
+                              camera.id,
+                              {
+                                zoom: Math.min(
+                                  3,
+                                  state.zoom +
+                                    0.1,
+                                ),
+                              },
+                            )
+                          }
+                        >
+                          ▲
+                        </button>
+
+                        <button
+                          title="Pan right"
+                          onClick={() =>
+                            rotateCamera(
+                              camera.id,
+                              15,
+                            )
+                          }
+                        >
+                          ▶
+                        </button>
+
+                        <button
+                          title="Zoom out"
+                          onClick={() =>
+                            changeZoom(
+                              camera.id,
+                              -0.1,
+                            )
+                          }
+                        >
+                          −
+                        </button>
+
+                        <button
+                          className="ptz-home"
+                          title="Reset PTZ/view"
+                          onClick={() =>
+                            resetViewer(
+                              camera.id,
+                            )
+                          }
+                        >
+                          HOME
+                        </button>
+
+                        <button
+                          title="Zoom in"
+                          onClick={() =>
+                            changeZoom(
+                              camera.id,
+                              0.1,
+                            )
+                          }
+                        >
+                          +
+                        </button>
+
+                        <button
+                          title="Digital view down"
+                          onClick={() =>
+                            changeZoom(
+                              camera.id,
+                              -0.1,
+                            )
+                          }
+                        >
+                          ▼
+                        </button>
+
+                      </div>
+
+                      <small>
+                        Digital viewer controls.
+                        Physical PTZ will use
+                        camera API/ONVIF when
+                        supported.
+                      </small>
+
+                    </div>
+                  )}
+
+                </div>
+
+
+                <div className="camera-card-body">
+
+                  <div className="camera-name-row">
+
+                    <div>
+
+                      <h3>
+                        {camera.name ||
+                          `Camera ${camera.id}`}
+                      </h3>
+
+                      <small>
+                        Camera ID: {camera.id}
+                      </small>
+
+                    </div>
+
+                    <span
+                      className={`running-state ${
+                        isRunning
+                          ? 'running'
+                          : 'stopped'
+                      }`}
+                    >
+                      {isRunning
+                        ? 'RUNNING'
+                        : 'STOPPED'}
+                    </span>
+
+                  </div>
+
+
+                  <div className="camera-meta">
+
+                    <div>
+
+                      <span>
+                        Enabled
+                      </span>
+
+                      <strong>
+                        {camera.enabled
+                          ? 'Yes'
+                          : 'No'}
+                      </strong>
+
+                    </div>
+
+                    <div>
+
+                      <span>
+                        Last Seen
+                      </span>
+
+                      <strong>
+                        {camera.last_seen
+                          ? new Date(
+                              camera.last_seen,
+                            ).toLocaleString()
+                          : 'Never'}
+                      </strong>
+
+                    </div>
+
+                  </div>
+
+
+                  <div className="camera-controls">
+
+                    <button
+                      className="camera-start"
+                      disabled={
+                        isRunning ||
+                        busy
+                      }
+                      onClick={() =>
+                        handleStart(
+                          camera.id,
+                        )
+                      }
+                    >
+                      {busy
+                        ? 'Working...'
+                        : 'Start'}
+                    </button>
+
+
+                    <button
+                      className="camera-stop"
+                      disabled={
+                        !isRunning ||
+                        busy
+                      }
+                      onClick={() =>
+                        handleStop(
+                          camera.id,
+                        )
+                      }
+                    >
+                      Stop
+                    </button>
+
+
+                    <button
+                      className="camera-status-button"
+                      onClick={() =>
+                        refreshStatus([
+                          camera,
+                        ])
+                      }
+                    >
+                      Status
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </article>
+            )
+          })}
+
+        </div>
+      )}
+
+    </div>
+  )
+}
+
+export default Cameras

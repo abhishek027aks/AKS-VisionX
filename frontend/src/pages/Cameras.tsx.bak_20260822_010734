@@ -1,0 +1,713 @@
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+import {
+  getCameraLiveToken,
+  getCameraStatus,
+  getCameras,
+  startCamera,
+  stopCamera,
+} from '../services/cameraService'
+import type { Camera } from '../types/camera'
+import './Cameras.css'
+
+type Rotation = 0 | 90 | 180 | 270
+
+function Cameras() {
+  const token = localStorage.getItem('aks_token') || ''
+
+  const [cameras, setCameras] = useState<Camera[]>([])
+  const [loading, setLoading] = useState(true)
+  const [actionId, setActionId] = useState<number | null>(null)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [streamErrors, setStreamErrors] = useState<
+    Record<number, boolean>
+  >({})
+  const [liveTokens, setLiveTokens] = useState<
+    Record<number, string>
+  >({})
+  const [streamVersion, setStreamVersion] = useState<
+    Record<number, number>
+  >({})
+  const [rotation, setRotation] = useState<
+    Record<number, Rotation>
+  >({})
+  const [fullscreenId, setFullscreenId] = useState<
+    number | null
+  >(null)
+
+  const previewRefs = useRef<
+    Record<number, HTMLDivElement | null>
+  >({})
+
+  const loadCameras = useCallback(async () => {
+    if (!token) return
+
+    try {
+      const data = await getCameras(token)
+      setCameras(data)
+      setError('')
+    } catch (err: any) {
+      console.error('CAMERA LOAD ERROR:', err)
+
+      if (err?.response?.status === 401) {
+        localStorage.removeItem('aks_token')
+        window.location.reload()
+        return
+      }
+
+      setError('Unable to load cameras.')
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
+
+  const refreshStatus = useCallback(
+    async (cameraList: Camera[]) => {
+      if (!token) return
+
+      const updated = await Promise.all(
+        cameraList.map(async (camera) => {
+          try {
+            const status = await getCameraStatus(
+              token,
+              camera.id,
+            )
+
+            return {
+              ...camera,
+              ...status,
+            }
+          } catch {
+            return camera
+          }
+        }),
+      )
+
+      setCameras((current) =>
+        current.map((camera) => {
+          const fresh = updated.find(
+            (item) => item.id === camera.id,
+          )
+
+          return fresh || camera
+        }),
+      )
+    },
+    [token],
+  )
+
+  const requestLiveToken = useCallback(
+    async (cameraId: number) => {
+      if (!token) return false
+
+      try {
+        const result = await getCameraLiveToken(
+          token,
+          cameraId,
+        )
+
+        setLiveTokens((current) => ({
+          ...current,
+          [cameraId]: result.token,
+        }))
+
+        setStreamErrors((current) => ({
+          ...current,
+          [cameraId]: false,
+        }))
+
+        setStreamVersion((current) => ({
+          ...current,
+          [cameraId]: (current[cameraId] || 0) + 1,
+        }))
+
+        return true
+      } catch (err: any) {
+        console.error(
+          `LIVE TOKEN ERROR [${cameraId}]:`,
+          err,
+        )
+
+        setLiveTokens((current) => {
+          const next = { ...current }
+          delete next[cameraId]
+          return next
+        })
+
+        setStreamErrors((current) => ({
+          ...current,
+          [cameraId]: true,
+        }))
+
+        return false
+      }
+    },
+    [token],
+  )
+
+  useEffect(() => {
+    loadCameras()
+  }, [loadCameras])
+
+  useEffect(() => {
+    if (!cameras.length) return
+
+    refreshStatus(cameras)
+
+    const interval = window.setInterval(() => {
+      refreshStatus(cameras)
+    }, 5000)
+
+    return () => window.clearInterval(interval)
+  }, [cameras, refreshStatus])
+
+  useEffect(() => {
+    if (!token) return
+
+    cameras.forEach((camera) => {
+      const running =
+        camera.running === true &&
+        camera.status === 'ONLINE'
+
+      if (
+        running &&
+        !liveTokens[camera.id] &&
+        !streamErrors[camera.id]
+      ) {
+        void requestLiveToken(camera.id)
+      }
+
+      if (!running && liveTokens[camera.id]) {
+        setLiveTokens((current) => {
+          const next = { ...current }
+          delete next[camera.id]
+          return next
+        })
+      }
+    })
+  }, [
+    cameras,
+    token,
+    liveTokens,
+    streamErrors,
+    requestLiveToken,
+  ])
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      const element = document.fullscreenElement
+
+      if (!element) {
+        setFullscreenId(null)
+        return
+      }
+
+      const cameraId = Number(
+        (element as HTMLElement).dataset.cameraId,
+      )
+
+      setFullscreenId(
+        Number.isFinite(cameraId) ? cameraId : null,
+      )
+    }
+
+    document.addEventListener(
+      'fullscreenchange',
+      onFullscreenChange,
+    )
+
+    return () => {
+      document.removeEventListener(
+        'fullscreenchange',
+        onFullscreenChange,
+      )
+    }
+  }, [])
+
+  const handleStart = async (cameraId: number) => {
+    setActionId(cameraId)
+    setMessage('')
+    setError('')
+
+    try {
+      setStreamErrors((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+
+      const response = await startCamera(
+        token,
+        cameraId,
+      )
+
+      setMessage(
+        `Camera ${cameraId}: ${
+          response?.status || 'started'
+        }`,
+      )
+
+      await loadCameras()
+      await requestLiveToken(cameraId)
+    } catch (err: any) {
+      console.error('START ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to start camera ${cameraId}.`,
+      )
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleStop = async (cameraId: number) => {
+    setActionId(cameraId)
+    setMessage('')
+    setError('')
+
+    try {
+      const response = await stopCamera(
+        token,
+        cameraId,
+      )
+
+      setMessage(
+        `Camera ${cameraId}: ${
+          response?.status || 'stopping'
+        }`,
+      )
+
+      setLiveTokens((current) => {
+        const next = { ...current }
+        delete next[cameraId]
+        return next
+      })
+
+      setStreamErrors((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+
+      if (
+        document.fullscreenElement ===
+        previewRefs.current[cameraId]
+      ) {
+        await document.exitFullscreen().catch(() => {})
+      }
+
+      await loadCameras()
+    } catch (err: any) {
+      console.error('STOP ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to stop camera ${cameraId}.`,
+      )
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleFullscreen = async (
+    cameraId: number,
+  ) => {
+    const element = previewRefs.current[cameraId]
+
+    if (!element) return
+
+    try {
+      if (document.fullscreenElement === element) {
+        await document.exitFullscreen()
+      } else {
+        await element.requestFullscreen()
+      }
+    } catch (err) {
+      console.error('FULLSCREEN ERROR:', err)
+      setError(
+        'Fullscreen is not available in this browser.',
+      )
+    }
+  }
+
+  const handleRotate = (
+    cameraId: number,
+    direction: 1 | -1,
+  ) => {
+    setRotation((current) => {
+      const currentRotation =
+        current[cameraId] || 0
+
+      const next =
+        (currentRotation + direction * 90 + 360) %
+        360
+
+      return {
+        ...current,
+        [cameraId]: next as Rotation,
+      }
+    })
+  }
+
+  const handleReconnect = async (
+    cameraId: number,
+  ) => {
+    setMessage('')
+    setError('')
+
+    setStreamErrors((current) => ({
+      ...current,
+      [cameraId]: false,
+    }))
+
+    const success =
+      await requestLiveToken(cameraId)
+
+    if (!success) {
+      setError(
+        `Unable to reconnect Camera ${cameraId}.`,
+      )
+    }
+  }
+
+  const online = cameras.filter(
+    (camera) => camera.status === 'ONLINE',
+  ).length
+
+  const running = cameras.filter(
+    (camera) => camera.running === true,
+  ).length
+
+  const getLiveUrl = (
+    cameraId: number,
+    liveToken: string,
+  ) => {
+    const version = streamVersion[cameraId] || 0
+
+    return `/api/cameras/${cameraId}/live/?access_token=${encodeURIComponent(
+      liveToken,
+    )}&v=${version}`
+  }
+
+  return (
+    <div className="cameras-page">
+      <div className="camera-page-header">
+        <div>
+          <h2>Camera Monitoring</h2>
+          <p>
+            Live camera status and monitoring controls.
+          </p>
+        </div>
+
+        <button
+          className="camera-refresh-button"
+          onClick={loadCameras}
+          disabled={loading}
+        >
+          Refresh
+        </button>
+      </div>
+
+      <div className="camera-summary">
+        <div>
+          <span>Total Cameras</span>
+          <strong>{cameras.length}</strong>
+        </div>
+
+        <div>
+          <span>Online</span>
+          <strong className="summary-online">
+            {online}
+          </strong>
+        </div>
+
+        <div>
+          <span>Running</span>
+          <strong>{running}</strong>
+        </div>
+      </div>
+
+      {message && (
+        <div className="camera-alert success">
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="camera-alert error">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="camera-empty">
+          Loading cameras...
+        </div>
+      ) : cameras.length === 0 ? (
+        <div className="camera-empty">
+          <div className="camera-empty-icon">
+            CAM
+          </div>
+
+          <h3>No cameras found</h3>
+
+          <p>
+            Add a camera from the backend before
+            starting monitoring.
+          </p>
+        </div>
+      ) : (
+        <div className="camera-grid-new">
+          {cameras.map((camera) => {
+            const isOnline =
+              camera.status === 'ONLINE'
+
+            const isRunning =
+              camera.running === true
+
+            const busy = actionId === camera.id
+
+            const streamFailed =
+              streamErrors[camera.id] === true
+
+            const liveToken =
+              liveTokens[camera.id]
+
+            const showLive =
+              isOnline &&
+              isRunning &&
+              Boolean(liveToken) &&
+              !streamFailed
+
+            const cameraRotation =
+              rotation[camera.id] || 0
+
+            return (
+              <article
+                className="camera-card-new"
+                key={camera.id}
+              >
+                <div
+                  ref={(element) => {
+                    previewRefs.current[camera.id] =
+                      element
+                  }}
+                  data-camera-id={camera.id}
+                  className={`camera-preview-new ${
+                    fullscreenId === camera.id
+                      ? 'is-fullscreen'
+                      : ''
+                  }`}
+                >
+                  {showLive ? (
+                    <img
+                      key={`${camera.id}-${streamVersion[camera.id] || 0}`}
+                      src={getLiveUrl(
+                        camera.id,
+                        liveToken,
+                      )}
+                      alt={`${camera.name || 'Camera'} live stream`}
+                      className="camera-live-image"
+                      style={{
+                        transform: `rotate(${cameraRotation}deg)`,
+                      }}
+                      onError={() => {
+                        setStreamErrors((current) => ({
+                          ...current,
+                          [camera.id]: true,
+                        }))
+                      }}
+                    />
+                  ) : (
+                    <div className="camera-no-live">
+                      <div className="camera-preview-icon">
+                        CAM
+                      </div>
+
+                      <span>
+                        {streamFailed
+                          ? 'LIVE STREAM ERROR'
+                          : isOnline
+                            ? isRunning
+                              ? 'CONNECTING LIVE STREAM'
+                              : 'CAMERA ONLINE'
+                            : 'NO LIVE STREAM'}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="camera-view-toolbar">
+                    <button
+                      type="button"
+                      title="Rotate left"
+                      onClick={() =>
+                        handleRotate(
+                          camera.id,
+                          -1,
+                        )
+                      }
+                    >
+                      â†º
+                    </button>
+
+                    <span>
+                      {cameraRotation}Â°
+                    </span>
+
+                    <button
+                      type="button"
+                      title="Rotate right"
+                      onClick={() =>
+                        handleRotate(
+                          camera.id,
+                          1,
+                        )
+                      }
+                    >
+                      â†»
+                    </button>
+
+                    <button
+                      type="button"
+                      title="Reconnect live stream"
+                      onClick={() =>
+                        handleReconnect(
+                          camera.id,
+                        )
+                      }
+                    >
+                      âŸ³
+                    </button>
+
+                    <button
+                      type="button"
+                      title={
+                        fullscreenId === camera.id
+                          ? 'Exit fullscreen'
+                          : 'Fullscreen'
+                      }
+                      onClick={() =>
+                        handleFullscreen(
+                          camera.id,
+                        )
+                      }
+                    >
+                      {fullscreenId === camera.id
+                        ? 'â›¶'
+                        : 'â›¶'}
+                    </button>
+                  </div>
+
+                  <div
+                    className={`camera-status ${
+                      isOnline
+                        ? 'online'
+                        : 'offline'
+                    }`}
+                  >
+                    <span />
+                    {camera.status || 'UNKNOWN'}
+                  </div>
+                </div>
+
+                <div className="camera-card-body">
+                  <div className="camera-name-row">
+                    <div>
+                      <h3>
+                        {camera.name ||
+                          `Camera ${camera.id}`}
+                      </h3>
+
+                      <small>
+                        Camera ID: {camera.id}
+                      </small>
+                    </div>
+
+                    <span
+                      className={`running-state ${
+                        isRunning
+                          ? 'running'
+                          : 'stopped'
+                      }`}
+                    >
+                      {isRunning
+                        ? 'RUNNING'
+                        : 'STOPPED'}
+                    </span>
+                  </div>
+
+                  <div className="camera-meta">
+                    <div>
+                      <span>Enabled</span>
+
+                      <strong>
+                        {camera.enabled
+                          ? 'Yes'
+                          : 'No'}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Last Seen</span>
+
+                      <strong>
+                        {camera.last_seen
+                          ? new Date(
+                              camera.last_seen,
+                            ).toLocaleString()
+                          : 'Never'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="camera-controls">
+                    <button
+                      className="camera-start"
+                      disabled={
+                        isRunning || busy
+                      }
+                      onClick={() =>
+                        handleStart(camera.id)
+                      }
+                    >
+                      {busy
+                        ? 'Working...'
+                        : 'Start'}
+                    </button>
+
+                    <button
+                      className="camera-stop"
+                      disabled={
+                        !isRunning || busy
+                      }
+                      onClick={() =>
+                        handleStop(camera.id)
+                      }
+                    >
+                      Stop
+                    </button>
+
+                    <button
+                      className="camera-status-button"
+                      onClick={() =>
+                        refreshStatus([camera])
+                      }
+                    >
+                      Status
+                    </button>
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default Cameras

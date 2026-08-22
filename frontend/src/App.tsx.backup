@@ -1,0 +1,477 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import axios from 'axios'
+import './App.css'
+
+const API = '/api'
+
+type Camera = {
+  id: number
+  name: string
+  status?: string
+  running?: boolean
+  enabled?: boolean
+  last_seen?: string | null
+}
+
+function App() {
+  const [token, setToken] = useState(
+    localStorage.getItem('aks_token') || '',
+  )
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [cameras, setCameras] = useState<Camera[]>([])
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const auth = token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : undefined
+
+  const login = async (e: FormEvent) => {
+    e.preventDefault()
+
+    setLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const response = await axios.post(`${API}/auth/token/`, {
+        username,
+        password,
+      })
+
+      const access = response.data.access
+
+      if (!access) {
+        throw new Error('No access token received')
+      }
+
+      localStorage.setItem('aks_token', access)
+      setToken(access)
+      setMessage('Login successful')
+      setPassword('')
+    } catch (err: any) {
+      console.error('LOGIN ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          'Login failed. Check username and password.',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const logout = () => {
+    localStorage.removeItem('aks_token')
+    setToken('')
+    setCameras([])
+    setMessage('')
+    setError('')
+  }
+
+  const loadCameras = async () => {
+    if (!token) return
+
+    try {
+      const response = await axios.get(`${API}/cameras/`, auth)
+
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data.results || []
+
+      setCameras(data)
+      setError('')
+    } catch (err: any) {
+      console.error('CAMERA LOAD ERROR:', err)
+
+      if (err?.response?.status === 401) {
+        logout()
+      } else {
+        setError('Unable to load cameras.')
+      }
+    }
+  }
+
+  const getStatus = async (cameraId: number) => {
+    if (!token) return
+
+    try {
+      const response = await axios.get(
+        `${API}/cameras/${cameraId}/status/`,
+        auth,
+      )
+
+      setCameras((current) =>
+        current.map((camera) =>
+          camera.id === cameraId
+            ? {
+                ...camera,
+                ...response.data,
+              }
+            : camera,
+        ),
+      )
+    } catch (err) {
+      console.error('STATUS ERROR:', err)
+    }
+  }
+
+  const startCamera = async (cameraId: number) => {
+    setError('')
+    setMessage('')
+
+    try {
+      const response = await axios.post(
+        `${API}/cameras/${cameraId}/start/`,
+        {},
+        auth,
+      )
+
+      setMessage(
+        `Camera ${cameraId}: ${response.data.status || 'started'}`,
+      )
+
+      await getStatus(cameraId)
+    } catch (err: any) {
+      console.error('START ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to start camera ${cameraId}.`,
+      )
+    }
+  }
+
+  const stopCamera = async (cameraId: number) => {
+    setError('')
+    setMessage('')
+
+    try {
+      const response = await axios.post(
+        `${API}/cameras/${cameraId}/stop/`,
+        {},
+        auth,
+      )
+
+      setMessage(
+        `Camera ${cameraId}: ${response.data.status || 'stopping'}`,
+      )
+
+      await getStatus(cameraId)
+    } catch (err: any) {
+      console.error('STOP ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to stop camera ${cameraId}.`,
+      )
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return
+
+    loadCameras()
+
+    const interval = setInterval(() => {
+      loadCameras()
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [token])
+
+  useEffect(() => {
+    if (!token || cameras.length === 0) return
+
+    cameras.forEach((camera) => {
+      getStatus(camera.id)
+    })
+
+    const interval = setInterval(() => {
+      cameras.forEach((camera) => {
+        getStatus(camera.id)
+      })
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [token, cameras.length])
+
+  if (!token) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <div className="brand-mark">AX</div>
+
+          <h1>AKS VisionX</h1>
+
+          <p className="subtitle">
+            Intelligent Camera Monitoring & AI Surveillance
+          </p>
+
+          <form onSubmit={login}>
+            <label>Username</label>
+
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username"
+              autoComplete="username"
+              required
+            />
+
+            <label>Password</label>
+
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder="Enter password"
+              autoComplete="current-password"
+              required
+            />
+
+            {error && <div className="alert error">{error}</div>}
+
+            {message && (
+              <div className="alert success">{message}</div>
+            )}
+
+            <button
+              className="primary-button"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+
+          <div className="login-footer">
+            AKS VisionX • Secure Monitoring Platform
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const online = cameras.filter(
+    (camera) => camera.status === 'ONLINE',
+  ).length
+
+  const running = cameras.filter(
+    (camera) => camera.running === true,
+  ).length
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="topbar-brand">
+          <div className="brand-mark small">AX</div>
+
+          <div>
+            <div className="brand-title">AKS VisionX</div>
+            <div className="brand-subtitle">
+              AI Surveillance Platform
+            </div>
+          </div>
+        </div>
+
+        <div className="topbar-actions">
+          <div className="system-status">
+            <span className="status-dot online" />
+            Backend Connected
+          </div>
+
+          <button className="logout-button" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <main className="dashboard">
+        <section className="dashboard-heading">
+          <div>
+            <h1>Security Dashboard</h1>
+
+            <p>
+              Monitor and control your connected surveillance cameras.
+            </p>
+          </div>
+
+          <button className="refresh-button" onClick={loadCameras}>
+            ? Refresh
+          </button>
+        </section>
+
+        {message && (
+          <div className="alert success">{message}</div>
+        )}
+
+        {error && (
+          <div className="alert error">{error}</div>
+        )}
+
+        <section className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-label">Total Cameras</div>
+            <div className="stat-value">{cameras.length}</div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-label">Online</div>
+            <div className="stat-value online-text">{online}</div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-label">Running</div>
+            <div className="stat-value">{running}</div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-label">System</div>
+            <div className="stat-value system-ok">OK</div>
+          </div>
+        </section>
+
+        <section className="section-header">
+          <div>
+            <h2>Camera Monitoring</h2>
+            <p>Live status is refreshed automatically.</p>
+          </div>
+        </section>
+
+        {cameras.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">?</div>
+            <h3>No cameras found</h3>
+            <p>
+              Add a camera from the backend before starting monitoring.
+            </p>
+          </div>
+        ) : (
+          <div className="camera-grid">
+            {cameras.map((camera) => {
+              const isOnline = camera.status === 'ONLINE'
+              const isRunning = camera.running === true
+
+              return (
+                <article className="camera-card" key={camera.id}>
+                  <div className="camera-preview">
+                    <div className="camera-placeholder">
+                      <div className="camera-icon">?</div>
+
+                      <span>
+                        {isOnline
+                          ? 'CAMERA ONLINE'
+                          : 'NO LIVE STREAM'}
+                      </span>
+                    </div>
+
+                    <div
+                      className={`live-badge ${
+                        isOnline ? 'live' : 'offline'
+                      }`}
+                    >
+                      <span className="status-dot" />
+                      {camera.status || 'UNKNOWN'}
+                    </div>
+                  </div>
+
+                  <div className="camera-content">
+                    <div className="camera-title-row">
+                      <div>
+                        <h3>
+                          {camera.name ||
+                            `Camera ${camera.id}`}
+                        </h3>
+
+                        <span className="camera-id">
+                          Camera ID: {camera.id}
+                        </span>
+                      </div>
+
+                      <div
+                        className={`running-badge ${
+                          isRunning ? 'running' : 'stopped'
+                        }`}
+                      >
+                        {isRunning ? 'RUNNING' : 'STOPPED'}
+                      </div>
+                    </div>
+
+                    <div className="camera-details">
+                      <div>
+                        <span>Enabled</span>
+
+                        <strong>
+                          {camera.enabled ? 'Yes' : 'No'}
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Last Seen</span>
+
+                        <strong>
+                          {camera.last_seen
+                            ? new Date(
+                                camera.last_seen,
+                              ).toLocaleString()
+                            : 'Never'}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="camera-actions">
+                      <button
+                        className="start-button"
+                        disabled={isRunning}
+                        onClick={() =>
+                          startCamera(camera.id)
+                        }
+                      >
+                        ? Start
+                      </button>
+
+                      <button
+                        className="stop-button"
+                        disabled={!isRunning}
+                        onClick={() =>
+                          stopCamera(camera.id)
+                        }
+                      >
+                        ¦ Stop
+                      </button>
+
+                      <button
+                        className="status-button"
+                        onClick={() =>
+                          getStatus(camera.id)
+                        }
+                      >
+                        Status
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </main>
+
+      <footer className="footer">
+        <span>AKS VisionX</span>
+        <span>AI Camera Security & Monitoring</span>
+      </footer>
+    </div>
+  )
+}
+
+export default App
+

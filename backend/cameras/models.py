@@ -36,6 +36,8 @@ class Camera(models.Model):
     manufacturer = models.CharField(max_length=100, blank=True)
     model = models.CharField(max_length=150, blank=True)
     serial_number = models.CharField(max_length=150, blank=True)
+    description = models.TextField(blank=True)
+    location = models.CharField(max_length=255, blank=True)
 
     connection_type = models.CharField(
         max_length=20,
@@ -67,6 +69,7 @@ class Camera(models.Model):
     ptz_supported = models.BooleanField(default=False)
     audio_supported = models.BooleanField(default=False)
     ai_supported = models.BooleanField(default=False)
+    recording_enabled = models.BooleanField(default=True)
 
     enabled = models.BooleanField(default=True)
 

@@ -1,4 +1,4 @@
-﻿from events.models import (
+from events.models import (
     IdentityMatch,
     TrackingCameraVisit,
     TrackingLocation,
@@ -11,6 +11,8 @@ def get_tracking_session_summary(session):
     """
     Return a complete tracking history summary.
     """
+
+    session.refresh_from_db()
 
     points = (
         TrackingPoint.objects
@@ -134,3 +136,4 @@ def get_tracking_session_summary(session):
             for match in identity_matches
         ],
     }
+

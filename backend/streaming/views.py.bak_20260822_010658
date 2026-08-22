@@ -1,0 +1,211 @@
+﻿import time
+
+import cv2
+
+from django.http import (
+    HttpResponseForbidden,
+    JsonResponse,
+    StreamingHttpResponse,
+)
+from django.shortcuts import get_object_or_404
+
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import AccessToken
+
+from cameras.models import Camera, CameraStream
+from streaming.camera_monitor_manager import CameraMonitorManager
+
+
+class CameraMJPEGView(APIView):
+    """
+    Authenticated MJPEG camera stream.
+
+    Browser live image:
+        GET /api/cameras/<camera_id>/live/?token=<JWT>
+
+    The query-token mode exists because a browser <img> element
+    cannot attach an Authorization header.
+
+    RTSP credentials are injected only in memory.
+    """
+
+    permission_classes = [AllowAny]
+
+    def _authenticate_query_token(self, request):
+        """
+        Authenticate the JWT supplied by the browser as ?token=...
+        """
+
+        raw_token = request.GET.get("token")
+
+        if not raw_token:
+            return None
+
+        try:
+            validated_token = AccessToken(raw_token)
+
+            authentication = JWTAuthentication()
+
+            user = authentication.get_user(
+                validated_token
+            )
+
+            if not user or not user.is_active:
+                return None
+
+            return user
+
+        except Exception:
+            return None
+
+    def _get_authenticated_user(self, request):
+        """
+        Prefer normal Authorization header authentication.
+        Fall back to browser query-token authentication.
+        """
+
+        if (
+            getattr(request, "user", None)
+            and request.user.is_authenticated
+        ):
+            return request.user
+
+        return self._authenticate_query_token(request)
+
+    def _organization_allowed(self, user, camera):
+        """
+        Keep camera organization isolation.
+        """
+
+        if user.groups.filter(name="Super Admin").exists():
+            return True
+
+        if not user.organization_id:
+            return False
+
+        return camera.organization_id == user.organization_id
+
+    def get(self, request, camera_id):
+        user = self._get_authenticated_user(request)
+
+        if user is None:
+            return JsonResponse(
+                {
+                    "detail": "Authentication credentials were not provided or are invalid."
+                },
+                status=401,
+            )
+
+        camera = get_object_or_404(
+            Camera.objects.prefetch_related("streams"),
+            id=camera_id,
+        )
+
+        if not self._organization_allowed(user, camera):
+            return HttpResponseForbidden(
+                "You cannot access this camera."
+            )
+
+        main_stream = (
+            camera.streams
+            .filter(
+                stream_type=CameraStream.StreamType.MAIN,
+                enabled=True,
+            )
+            .first()
+        )
+
+        if main_stream is None:
+            return JsonResponse(
+                {
+                    "detail": (
+                        "No enabled main camera "
+                        "stream is available."
+                    )
+                },
+                status=400,
+            )
+
+        stream_url = (
+            CameraMonitorManager
+            ._build_authenticated_stream_url(
+                camera,
+                main_stream.url,
+            )
+        )
+
+        def generate():
+            capture = cv2.VideoCapture(
+                stream_url,
+                cv2.CAP_FFMPEG,
+            )
+
+            # Reduce internal buffering where supported.
+            try:
+                capture.set(
+                    cv2.CAP_PROP_BUFFERSIZE,
+                    1,
+                )
+            except Exception:
+                pass
+
+            try:
+                if not capture.isOpened():
+                    return
+
+                while True:
+                    success, frame = capture.read()
+
+                    if not success or frame is None:
+                        break
+
+                    encoded_ok, encoded = cv2.imencode(
+                        ".jpg",
+                        frame,
+                        [
+                            cv2.IMWRITE_JPEG_QUALITY,
+                            80,
+                        ],
+                    )
+
+                    if not encoded_ok:
+                        continue
+
+                    yield (
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n"
+                        b"Cache-Control: no-cache\r\n\r\n"
+                        + encoded.tobytes()
+                        + b"\r\n"
+                    )
+
+                    time.sleep(0.03)
+
+            except GeneratorExit:
+                pass
+
+            except Exception:
+                pass
+
+            finally:
+                capture.release()
+
+        response = StreamingHttpResponse(
+            generate(),
+            content_type=(
+                "multipart/x-mixed-replace; "
+                "boundary=frame"
+            ),
+        )
+
+        response["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, "
+            "proxy-revalidate, max-age=0"
+        )
+
+        response["Pragma"] = "no-cache"
+        response["Expires"] = "0"
+
+        return response

@@ -1,0 +1,12 @@
+﻿html {
+  background: #070b12;
+}
+
+body {
+  margin: 0;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #263448 #070b12;
+}
