@@ -191,3 +191,89 @@
     flex-direction: column;
   }
 }
+
+.recording-player-card {
+  margin-bottom: 20px;
+  border: 1px solid #1d3048;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #08111d;
+}
+
+.recording-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #1d3048;
+}
+
+.recording-player-header h3 {
+  margin: 0;
+}
+
+.recording-player-header p {
+  margin: 5px 0 0;
+  opacity: 0.7;
+}
+
+.recording-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recording-player-actions button {
+  border: 1px solid #29405c;
+  background: #0d1b2b;
+  color: #e6eef8;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.ai-count-pill {
+  border: 1px solid #29405c;
+  background: #0d1b2b;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.recording-video-stage {
+  position: relative;
+  width: 100%;
+  background: #000;
+  overflow: hidden;
+}
+
+.recording-video-stage video {
+  display: block;
+  width: 100%;
+  max-height: 700px;
+  object-fit: contain;
+}
+
+.recording-ai-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: calc(100% - 0px);
+  pointer-events: none;
+}
+
+.recording-ai-hud {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 4;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}

@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import (
     action,
@@ -17,6 +18,7 @@ from .permissions import (
     IsViewerOrAbove,
 )
 from audit.models import AuditLog
+from alerts.models import Alert
 
 from .serializers import (
     CameraSerializer,
@@ -53,6 +55,13 @@ from ai_engine.camera_inference_service import (
 )
 
 from cameras.models import Camera, CameraStream
+
+from cameras.ptz_service import (
+    PTZError,
+    ONVIFPTZService,
+    detect_ptz,
+)
+
 from recordings.models import Recording
 from events.models import (
     PersonProfile,
@@ -162,6 +171,13 @@ class CameraViewSet(viewsets.ModelViewSet):
             "test_connection",
             "start_monitoring",
             "stop_monitoring",
+            "ptz_detect",
+            "ptz_status",
+            "ptz_move",
+            "ptz_stop",
+            "ptz_home",
+            "ptz_presets",
+            "ptz_preset",
         ]:
             permission_classes = [IsOperatorOrAbove]
 
@@ -401,6 +417,451 @@ class CameraViewSet(viewsets.ModelViewSet):
             }
         )
 
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="ptz/detect",
+    )
+    def ptz_detect(self, request, pk=None):
+        camera = self.get_object()
+
+        result = detect_ptz(camera)
+
+        return Response(result)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="ptz/status",
+    )
+    def ptz_status(self, request, pk=None):
+        camera = self.get_object()
+
+        if not camera.ptz_supported:
+            return Response(
+                {
+                    "camera_id": camera.id,
+                    "supported": False,
+                    "onvif_supported": camera.onvif_supported,
+                    "ptz_supported": camera.ptz_supported,
+                }
+            )
+
+        try:
+            service = ONVIFPTZService(camera)
+            data = service.get_status()
+
+            return Response(
+                {
+                    **data,
+                    "onvif_supported": True,
+                    "ptz_supported": True,
+                }
+            )
+
+        except PTZError as exc:
+            return Response(
+                {
+                    "camera_id": camera.id,
+                    "supported": False,
+                    "onvif_supported": camera.onvif_supported,
+                    "ptz_supported": False,
+                    "detail": str(exc),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="ptz/move",
+    )
+    def ptz_move(self, request, pk=None):
+        camera = self.get_object()
+
+        if not camera.ptz_supported:
+            return Response(
+                {
+                    "detail": "Physical PTZ is not supported by this camera."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            pan = float(request.data.get("pan", 0))
+            tilt = float(request.data.get("tilt", 0))
+            zoom = float(request.data.get("zoom", 0))
+            timeout = float(
+                request.data.get(
+                    "timeout",
+                    0.8,
+                )
+            )
+
+            pan = max(-1.0, min(1.0, pan))
+            tilt = max(-1.0, min(1.0, tilt))
+            zoom = max(-1.0, min(1.0, zoom))
+
+            service = ONVIFPTZService(camera)
+
+            result = service.continuous_move(
+                pan=pan,
+                tilt=tilt,
+                zoom=zoom,
+                timeout_seconds=timeout,
+            )
+
+            return Response(result)
+
+        except PTZError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid PTZ values."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="ptz/stop",
+    )
+    def ptz_stop(self, request, pk=None):
+        camera = self.get_object()
+
+        if not camera.ptz_supported:
+            return Response(
+                {
+                    "detail": "Physical PTZ is not supported."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            service = ONVIFPTZService(camera)
+            return Response(service.stop())
+
+        except PTZError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="ptz/home",
+    )
+    def ptz_home(self, request, pk=None):
+        camera = self.get_object()
+
+        if not camera.ptz_supported:
+            return Response(
+                {
+                    "detail": "Physical PTZ is not supported."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            service = ONVIFPTZService(camera)
+            return Response(
+                service.goto_home()
+            )
+
+        except PTZError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="ptz/presets",
+    )
+    def ptz_presets(self, request, pk=None):
+        camera = self.get_object()
+
+        if not camera.ptz_supported:
+            return Response(
+                {
+                    "supported": False,
+                    "presets": [],
+                }
+            )
+
+        try:
+            service = ONVIFPTZService(camera)
+
+            return Response(
+                {
+                    "supported": True,
+                    "presets": service.get_presets(),
+                }
+            )
+
+        except PTZError as exc:
+            return Response(
+                {
+                    "supported": False,
+                    "presets": [],
+                    "detail": str(exc),
+                }
+            )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="ptz/preset",
+    )
+    def ptz_preset(self, request, pk=None):
+        camera = self.get_object()
+
+        if not camera.ptz_supported:
+            return Response(
+                {
+                    "detail": "Physical PTZ is not supported."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token = str(
+            request.data.get(
+                "token",
+                "",
+            )
+        ).strip()
+
+        if not token:
+            return Response(
+                {"detail": "Preset token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            service = ONVIFPTZService(camera)
+
+            return Response(
+                service.goto_preset(token)
+            )
+
+        except PTZError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="health",
+    )
+    def health(self, request):
+        cameras = list(
+            self.get_queryset()
+            .order_by("id")
+        )
+
+        active_recordings = {
+            recording.camera_id: recording
+            for recording in (
+                Recording.objects
+                .filter(
+                    camera__in=cameras,
+                    status=Recording.Status.RECORDING,
+                )
+                .order_by(
+                    "camera_id",
+                    "-started_at",
+                    "-id",
+                )
+            )
+        }
+
+        result = []
+
+        for camera in cameras:
+            monitor = (
+                camera_monitor_manager
+                .get_status(camera.id)
+            )
+
+            ai = (
+                camera_monitor_manager
+                .get_ai_status(camera.id)
+            )
+
+            recording = active_recordings.get(
+                camera.id
+            )
+
+            result.append(
+                {
+                    "camera_id": camera.id,
+                    "name": camera.name,
+                    "enabled": camera.enabled,
+
+                    "status": camera.status,
+                    "running": monitor.get(
+                        "running",
+                        False,
+                    ),
+
+                    "connection_state": monitor.get(
+                        "connection_state",
+                        "STOPPED",
+                    ),
+
+                    "stream_healthy": monitor.get(
+                        "stream_healthy",
+                        False,
+                    ),
+
+                    "last_seen": camera.last_seen,
+                    "last_frame_at": monitor.get(
+                        "last_frame_at"
+                    ),
+                    "last_frame_age_ms": monitor.get(
+                        "last_frame_age_ms"
+                    ),
+
+                    "consecutive_failures": monitor.get(
+                        "consecutive_failures",
+                        0,
+                    ),
+
+                    "recording": {
+                        "active": recording is not None,
+                        "id": (
+                            recording.id
+                            if recording is not None
+                            else None
+                        ),
+                        "started_at": (
+                            recording.started_at
+                            if recording is not None
+                            else None
+                        ),
+                    },
+
+                    "ai": {
+                        "enabled": bool(
+                            camera.ai_supported
+                        ),
+                        "healthy": bool(
+                            ai.get(
+                                "overlay_available",
+                                False,
+                            )
+                        ),
+                        "persons": int(
+                            ai.get(
+                                "person_count",
+                                0,
+                            )
+                            or 0
+                        ),
+                        "vehicles": int(
+                            ai.get(
+                                "vehicle_count",
+                                0,
+                            )
+                            or 0
+                        ),
+                        "objects": int(
+                            ai.get(
+                                "object_count",
+                                0,
+                            )
+                            or 0
+                        ),
+                        "updated_at": ai.get(
+                            "updated_at"
+                        ),
+                        "overlay_available": bool(
+                            ai.get(
+                                "overlay_available",
+                                False,
+                            )
+                        ),
+                    },
+
+                    "ptz": {
+                        "supported": bool(
+                            camera.ptz_supported
+                        ),
+                        "onvif_supported": bool(
+                            camera.onvif_supported
+                        ),
+                    },
+
+                    "stream": {
+                        "width": (
+                            camera.streams
+                            .filter(
+                                stream_type=(
+                                    CameraStream
+                                    .StreamType
+                                    .MAIN
+                                ),
+                                enabled=True,
+                            )
+                            .values_list(
+                                "width",
+                                flat=True,
+                            )
+                            .first()
+                        ),
+                        "height": (
+                            camera.streams
+                            .filter(
+                                stream_type=(
+                                    CameraStream
+                                    .StreamType
+                                    .MAIN
+                                ),
+                                enabled=True,
+                            )
+                            .values_list(
+                                "height",
+                                flat=True,
+                            )
+                            .first()
+                        ),
+                        "fps": (
+                            camera.streams
+                            .filter(
+                                stream_type=(
+                                    CameraStream
+                                    .StreamType
+                                    .MAIN
+                                ),
+                                enabled=True,
+                            )
+                            .values_list(
+                                "fps",
+                                flat=True,
+                            )
+                            .first()
+                        ),
+                    },
+                }
+            )
+
+        return Response(
+            {
+                "generated_at": timezone.now(),
+                "cameras": result,
+            }
+        )
+
     @action(
         detail=True,
         methods=["get"],
@@ -410,6 +871,10 @@ class CameraViewSet(viewsets.ModelViewSet):
         camera = self.get_object()
 
         monitor_status = camera_monitor_manager.get_status(
+            camera.id
+        )
+
+        ai_status = camera_monitor_manager.get_ai_status(
             camera.id
         )
 
@@ -470,6 +935,21 @@ class CameraViewSet(viewsets.ModelViewSet):
                     if main_stream is not None
                     else None
                 ),
+                "ai_person_count": ai_status[
+                    "person_count"
+                ],
+                "ai_vehicle_count": ai_status[
+                    "vehicle_count"
+                ],
+                "ai_object_count": ai_status[
+                    "object_count"
+                ],
+                "ai_updated_at": ai_status[
+                    "updated_at"
+                ],
+                "ai_overlay_available": ai_status[
+                    "overlay_available"
+                ],
             }
         )
 
@@ -861,8 +1341,195 @@ class EventViewSet(viewsets.ModelViewSet):
             organization=camera.organization,
         )
     
+@api_view(["GET"])
+@permission_classes([IsViewerOrAbove])
+def dashboard_summary(request):
+    """
+    Lightweight dashboard summary endpoint.
+    """
+
+    camera_qs = organization_queryset(
+        Camera.objects.all(),
+        request.user,
+    )
+
+    detection_qs = organization_queryset(
+        Detection.objects.all(),
+        request.user,
+    )
+
+    person_qs = organization_queryset(
+        PersonProfile.objects.all(),
+        request.user,
+    )
+
+    vehicle_qs = organization_queryset(
+        VehicleProfile.objects.all(),
+        request.user,
+    )
+
+    event_qs = organization_queryset(
+        Event.objects.all(),
+        request.user,
+    )
+
+    alert_qs = organization_queryset(
+        Alert.objects.all(),
+        request.user,
+    )
+
+    tracking_session_qs = organization_queryset(
+        TrackingSession.objects.all(),
+        request.user,
+    )
+
+    tracking_point_qs = TrackingPoint.objects.filter(
+        tracking_session__in=tracking_session_qs,
+    )
+
+    tracking_location_qs = TrackingLocation.objects.filter(
+        tracking_session__in=tracking_session_qs,
+    )
+
+    tracking_visit_qs = TrackingCameraVisit.objects.filter(
+        tracking_session__in=tracking_session_qs,
+    )
+
+    recording_qs = organization_queryset(
+        Recording.objects.all(),
+        request.user,
+    )
+
+    cameras = []
+
+    for camera in camera_qs.order_by("id"):
+        active_recording = (
+            recording_qs
+            .filter(
+                camera=camera,
+                status=Recording.Status.RECORDING,
+            )
+            .order_by("-started_at", "-id")
+            .first()
+        )
+
+        cameras.append(
+            {
+                "id": camera.id,
+                "name": camera.name,
+                "status": camera.status,
+                "running": camera_monitor_manager.is_running(
+                    camera.id
+                ),
+                "recording": (
+                    active_recording is not None
+                ),
+                "last_seen": camera.last_seen,
+            }
+        )
+
+    recent_events = list(
+        event_qs
+        .order_by("-occurred_at", "-id")
+        .values(
+            "id",
+            "camera_id",
+            "event_type",
+            "status",
+            "title",
+            "description",
+            "occurred_at",
+            "confidence",
+        )[:5]
+    )
+
+    recent_alerts = list(
+        alert_qs
+        .order_by("-created_at", "-id")
+        .values(
+            "id",
+            "camera_id",
+            "event_id",
+            "source",
+            "severity",
+            "status",
+            "title",
+            "message",
+            "created_at",
+        )[:5]
+    )
+
+    recent_detections = list(
+        detection_qs
+        .order_by("-last_seen_at", "-id")
+        .values(
+            "id",
+            "camera_id",
+            "event_id",
+            "object_type",
+            "label",
+            "confidence",
+            "tracking_id",
+            "status",
+            "first_seen_at",
+            "last_seen_at",
+        )[:8]
+    )
+
+    active_alerts = alert_qs.filter(
+        status__in=[
+            Alert.Status.NEW,
+            Alert.Status.ACKNOWLEDGED,
+        ]
+    ).count()
+
+    active_tracking = tracking_visit_qs.filter(
+        exited_at__isnull=True,
+    ).count()
+
+    return Response(
+        {
+            "cameras": cameras,
+            "counts": {
+                "cameras": camera_qs.count(),
+                "online_cameras": camera_qs.filter(
+                    status=Camera.Status.ONLINE
+                ).count(),
+                "running_cameras": sum(
+                    1
+                    for camera in cameras
+                    if camera["running"]
+                ),
+                "recording_cameras": sum(
+                    1
+                    for camera in cameras
+                    if camera["recording"]
+                ),
+                "detections": detection_qs.count(),
+                "persons": person_qs.count(),
+                "vehicles": vehicle_qs.count(),
+                "events": event_qs.count(),
+                "alerts": alert_qs.count(),
+                "active_alerts": active_alerts,
+                "tracking_sessions": tracking_session_qs.count(),
+                "tracking_points": tracking_point_qs.count(),
+                "tracking_locations": tracking_location_qs.count(),
+                "camera_visits": tracking_visit_qs.count(),
+                "active_tracking": active_tracking,
+                "recordings": recording_qs.count(),
+            },
+            "recent_events": recent_events,
+            "recent_alerts": recent_alerts,
+            "recent_detections": recent_detections,
+        }
+    )
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
+
+
+
 def change_password(request):
     """
     Change the authenticated user's password.

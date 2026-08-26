@@ -145,3 +145,126 @@ export async function stopCamera(
 
   return response.data
 }
+
+
+export type PTZStatus = {
+  camera_id: number
+  supported: boolean
+  onvif_supported: boolean
+  ptz_supported: boolean
+  pan?: number | null
+  tilt?: number | null
+  zoom?: number | null
+}
+
+export type PTZPreset = {
+  token: string
+  name: string
+}
+
+export async function detectCameraPTZ(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.post(
+    `${API}/cameras/${cameraId}/ptz/detect/`,
+    {},
+    authConfig(token),
+  )
+
+  return response.data as {
+    onvif_supported: boolean
+    ptz_supported: boolean
+  }
+}
+
+export async function getCameraPTZStatus(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.get(
+    `${API}/cameras/${cameraId}/ptz/status/`,
+    authConfig(token),
+  )
+
+  return response.data as PTZStatus
+}
+
+export async function moveCameraPTZ(
+  token: string,
+  cameraId: number,
+  pan = 0,
+  tilt = 0,
+  zoom = 0,
+  timeout = 0.8,
+) {
+  const response = await axios.post(
+    `${API}/cameras/${cameraId}/ptz/move/`,
+    {
+      pan,
+      tilt,
+      zoom,
+      timeout,
+    },
+    authConfig(token),
+  )
+
+  return response.data
+}
+
+export async function stopCameraPTZ(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.post(
+    `${API}/cameras/${cameraId}/ptz/stop/`,
+    {},
+    authConfig(token),
+  )
+
+  return response.data
+}
+
+export async function homeCameraPTZ(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.post(
+    `${API}/cameras/${cameraId}/ptz/home/`,
+    {},
+    authConfig(token),
+  )
+
+  return response.data
+}
+
+export async function getCameraPTZPresets(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.get(
+    `${API}/cameras/${cameraId}/ptz/presets/`,
+    authConfig(token),
+  )
+
+  return response.data as {
+    supported: boolean
+    presets: PTZPreset[]
+  }
+}
+
+export async function gotoCameraPTZPreset(
+  token: string,
+  cameraId: number,
+  presetToken: string,
+) {
+  const response = await axios.post(
+    `${API}/cameras/${cameraId}/ptz/preset/`,
+    {
+      token: presetToken,
+    },
+    authConfig(token),
+  )
+
+  return response.data
+}

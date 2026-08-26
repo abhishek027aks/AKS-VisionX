@@ -1,3 +1,7 @@
+﻿# ================================
+# AKS VisionX - Git Ignore
+# ================================
+
 # Python
 __pycache__/
 *.py[cod]
@@ -6,41 +10,68 @@ __pycache__/
 # Virtual environments
 .venv/
 .venv-ai/
+.venv-*/
 venv/
 env/
 
-# Django database runtime files
+# Secrets
+.env
+.env.*
+*.env
+!.env.example
+
+# Django / databases
+*.sqlite3
 *.sqlite3-journal
 *.sqlite3-wal
 *.sqlite3-shm
 
-# Backup files
-*.bak
-*.bak2
-*.before-*
-*_backup_*/
-phase*_backup_*/
+# Camera recordings / generated media
+data/recordings/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
 
-# AI model weights
+# AI models / generated test files
 *.pt
 *.onnx
-*.engine
+*.weights
+*.jpg
+*.jpeg
+*.png
 
-# Test images
-bus.jpg
-yolo_test.jpg
+# Backups
+*.bak
+*.bak_*
+*.bak2
+*.backup
+*.before-*
+*.prof_backup
+*.professional_backup
+*.performance_backup
+*.ptz_backup
+*.reliability_backup
+*.ai_patch_backup
+*_backup/
+phase*_backup*/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
 
 # Logs
 *.log
 
-# Environment files
-.env
-.env.*
-
-# Frontend dependencies/build
-frontend/node_modules/
-frontend/dist/
+# Temporary
+*.tmp
+*.temp
 
 # OS
-.DS_Store
 Thumbs.db
+.DS_Store

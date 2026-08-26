@@ -22,6 +22,19 @@
     fps?: number | string | null
     width?: number | null
     height?: number | null
+
+  onvif_supported?: boolean
+  ptz_supported?: boolean
+
+  ptz_capabilities?: {
+    onvif: boolean
+    ptz: boolean
+    pan: boolean
+    tilt: boolean
+    zoom: boolean
+    home: boolean
+    presets: boolean
+  }
   } | null
   fps?: number | string | null
   width?: number | null

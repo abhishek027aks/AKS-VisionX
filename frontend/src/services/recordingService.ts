@@ -163,3 +163,49 @@ export function getRecordingDownloadUrl(
 ) {
   return `${API}/recordings/${recordingId}/download/`
 }
+
+
+export type RecordingDetection = {
+  id: number
+  timestamp: string
+  object_type: string
+  label: string
+  confidence: number | null
+  tracking_id: string
+  bbox_x: number
+  bbox_y: number
+  bbox_width: number
+  bbox_height: number
+}
+
+export async function getRecordingVideoBlob(
+  token: string,
+  recordingId: number,
+) {
+  const response = await axios.get(
+    getRecordingDownloadUrl(recordingId),
+    {
+      ...authConfig(token),
+      responseType: 'blob',
+    },
+  )
+
+  return response.data as Blob
+}
+
+export async function getRecordingAIDetections(
+  token: string,
+  recordingId: number,
+) {
+  const response = await axios.get(
+    `${API}/recordings/${recordingId}/ai-detections/`,
+    authConfig(token),
+  )
+
+  return response.data as {
+    recording_id: number
+    started_at: string
+    ended_at: string | null
+    detections: RecordingDetection[]
+  }
+}

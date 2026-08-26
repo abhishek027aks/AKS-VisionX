@@ -15,12 +15,38 @@ import {
   stopCamera,
   testCameraConnection,
   updateCamera,
+  moveCameraPTZ,
+  stopCameraPTZ,
+  homeCameraPTZ,
+  gotoCameraPTZPreset,
   type CameraPayload,
+  type PTZPreset,
 } from '../services/cameraService'
 import type { Camera } from '../types/camera'
 import './Cameras.css'
 
 type Rotation = 0 | 90 | 180 | 270
+
+type DigitalView = {
+  zoom: number
+  panX: number
+  panY: number
+}
+
+type PTZState = {
+  supported: boolean
+  onvif_supported: boolean
+  ptz_supported: boolean
+  pan?: number | null
+  tilt?: number | null
+  zoom?: number | null
+}
+
+const DEFAULT_DIGITAL_VIEW: DigitalView = {
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+}
 
 type CameraFormState = CameraPayload & {
   password: string
@@ -80,9 +106,188 @@ function Cameras() {
     Record<number, string>
   >({})
 
+  const [digitalView, setDigitalView] = useState<
+    Record<number, DigitalView>
+  >({})
+
+  const [ptzStatus] = useState<
+    Record<number, PTZState>
+  >({})
+
+  const [ptzPresets] = useState<
+    Record<number, PTZPreset[]>
+  >({})
+
+  const [ptzBusy, setPtzBusy] = useState<
+    Record<number, boolean>
+  >({})
+
   const previewRefs = useRef<
     Record<number, HTMLDivElement | null>
   >({})
+
+  const dragRefs = useRef<
+    Record<
+      number,
+      {
+        startX: number
+        startY: number
+        panX: number
+        panY: number
+      }
+    >
+  >({})
+
+  const clamp = (
+    value: number,
+    min: number,
+    max: number,
+  ) => Math.max(min, Math.min(max, value))
+
+  const getDigitalView = (cameraId: number) =>
+    digitalView[cameraId] || DEFAULT_DIGITAL_VIEW
+
+  const setCameraDigitalView = (
+    cameraId: number,
+    next: Partial<DigitalView>,
+  ) => {
+    setDigitalView((current) => ({
+      ...current,
+      [cameraId]: {
+        ...getDigitalView(cameraId),
+        ...next,
+      },
+    }))
+  }
+
+  const zoomIn = (cameraId: number) => {
+    const view = getDigitalView(cameraId)
+
+    setCameraDigitalView(cameraId, {
+      zoom: clamp(view.zoom + 0.25, 1, 4),
+    })
+  }
+
+  const zoomOut = (cameraId: number) => {
+    const view = getDigitalView(cameraId)
+
+    const zoom = clamp(view.zoom - 0.25, 1, 4)
+
+    setCameraDigitalView(cameraId, {
+      zoom,
+      panX:
+        zoom === 1
+          ? 0
+          : view.panX,
+      panY:
+        zoom === 1
+          ? 0
+          : view.panY,
+    })
+  }
+
+  const resetDigitalView = (cameraId: number) => {
+    setCameraDigitalView(
+      cameraId,
+      DEFAULT_DIGITAL_VIEW,
+    )
+  }
+
+  const moveDigital = (
+    cameraId: number,
+    x: number,
+    y: number,
+  ) => {
+    const view = getDigitalView(cameraId)
+
+    setCameraDigitalView(cameraId, {
+      panX: clamp(view.panX + x, -35, 35),
+      panY: clamp(view.panY + y, -35, 35),
+    })
+  }
+
+  const ptzMove = async (
+    cameraId: number,
+    pan: number,
+    tilt: number,
+    zoom: number,
+  ) => {
+    setPtzBusy((current) => ({
+      ...current,
+      [cameraId]: true,
+    }))
+
+    try {
+      await moveCameraPTZ(
+        token,
+        cameraId,
+        pan,
+        tilt,
+        zoom,
+        0.8,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'PTZ movement failed.',
+      )
+    } finally {
+      setPtzBusy((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+    }
+  }
+
+  const ptzStop = async (
+    cameraId: number,
+  ) => {
+    try {
+      await stopCameraPTZ(
+        token,
+        cameraId,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Unable to stop PTZ.',
+      )
+    }
+  }
+
+  const ptzHome = async (
+    cameraId: number,
+  ) => {
+    try {
+      await homeCameraPTZ(
+        token,
+        cameraId,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Unable to move camera home.',
+      )
+    }
+  }
+
+  const ptzPreset = async (
+    cameraId: number,
+    presetToken: string,
+  ) => {
+    try {
+      await gotoCameraPTZPreset(
+        token,
+        cameraId,
+        presetToken,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Unable to move to preset.',
+      )
+    }
+  }
 
   const loadCameras = useCallback(async () => {
     if (!token) return
@@ -91,6 +296,7 @@ function Cameras() {
       const data = await getCameras(token)
       setCameras(data)
       setError('')
+
     } catch (err: any) {
       console.error('CAMERA LOAD ERROR:', err)
 
@@ -351,6 +557,147 @@ function Cameras() {
     } finally {
       setActionId(null)
     }
+  }
+
+  const handlePreviewWheel = (
+    event: React.WheelEvent,
+    cameraId: number,
+  ) => {
+    event.preventDefault()
+
+    const view =
+      digitalView[cameraId] ||
+      DEFAULT_DIGITAL_VIEW
+
+    const delta =
+      event.deltaY < 0
+        ? 0.15
+        : -0.15
+
+    const zoom = clamp(
+      view.zoom + delta,
+      1,
+      4,
+    )
+
+    setCameraDigitalView(
+      cameraId,
+      {
+        zoom,
+        panX:
+          zoom === 1
+            ? 0
+            : view.panX,
+        panY:
+          zoom === 1
+            ? 0
+            : view.panY,
+      },
+    )
+  }
+
+  const handlePreviewPointerDown = (
+    event: React.PointerEvent,
+    cameraId: number,
+  ) => {
+    const view =
+      digitalView[cameraId] ||
+      DEFAULT_DIGITAL_VIEW
+
+    if (view.zoom <= 1) {
+      return
+    }
+
+    ;(
+      event.currentTarget as HTMLElement
+    ).setPointerCapture(event.pointerId)
+
+    dragRefs.current[cameraId] = {
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: view.panX,
+      panY: view.panY,
+    }
+  }
+
+  const handlePreviewPointerMove = (
+    event: React.PointerEvent,
+    cameraId: number,
+  ) => {
+    const drag =
+      dragRefs.current[cameraId]
+
+    if (!drag) {
+      return
+    }
+
+    const element =
+      previewRefs.current[cameraId]
+
+    if (!element) {
+      return
+    }
+
+    const rect =
+      element.getBoundingClientRect()
+
+    const sensitivity =
+      Math.max(
+        0.35,
+        (digitalView[cameraId]?.zoom || 1) *
+          0.6,
+      )
+
+    const dx =
+      ((event.clientX - drag.startX) /
+        Math.max(rect.width, 1)) *
+      100 *
+      sensitivity
+
+    const dy =
+      ((event.clientY - drag.startY) /
+        Math.max(rect.height, 1)) *
+      100 *
+      sensitivity
+
+    setCameraDigitalView(
+      cameraId,
+      {
+        panX: clamp(
+          drag.panX + dx,
+          -35,
+          35,
+        ),
+        panY: clamp(
+          drag.panY + dy,
+          -35,
+          35,
+        ),
+      },
+    )
+  }
+
+  const handlePreviewPointerUp = (
+    event: React.PointerEvent,
+    cameraId: number,
+  ) => {
+    delete dragRefs.current[cameraId]
+
+    try {
+      ;(
+        event.currentTarget as HTMLElement
+      ).releasePointerCapture(event.pointerId)
+    } catch {
+      // Pointer may already have been released.
+    }
+  }
+
+  const handlePreviewDoubleClick = (
+    event: React.MouseEvent,
+    cameraId: number,
+  ) => {
+    event.preventDefault()
+    resetDigitalView(cameraId)
   }
 
   const handleFullscreen = async (
@@ -616,10 +963,13 @@ function Cameras() {
     liveToken: string,
   ) => {
     const version = streamVersion[cameraId] || 0
+    const backendOrigin =
+      import.meta.env.VITE_API_ORIGIN ||
+      'http://127.0.0.1:8000'
 
-    return `/api/cameras/${cameraId}/live/?access_token=${encodeURIComponent(
+    return `${backendOrigin}/api/cameras/${cameraId}/live/?access_token=${encodeURIComponent(
       liveToken,
-    )}&v=${version}`
+    )}&ai_overlay=1&v=${version}`
   }
 
   return (
@@ -910,6 +1260,19 @@ function Cameras() {
             const cameraRotation =
               rotation[camera.id] || 0
 
+            const view =
+              digitalView[camera.id] ||
+              DEFAULT_DIGITAL_VIEW
+
+            const cameraPTZ =
+              ptzStatus[camera.id]
+
+            const hasPhysicalPTZ =
+              cameraPTZ?.ptz_supported === true
+
+            const cameraPTZBusy =
+              ptzBusy[camera.id] === true
+
             return (
               <article
                 className="camera-card-new"
@@ -926,6 +1289,42 @@ function Cameras() {
                       ? 'is-fullscreen'
                       : ''
                   }`}
+                  onWheel={(event) =>
+                    handlePreviewWheel(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerDown={(event) =>
+                    handlePreviewPointerDown(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerMove={(event) =>
+                    handlePreviewPointerMove(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerUp={(event) =>
+                    handlePreviewPointerUp(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerCancel={(event) =>
+                    handlePreviewPointerUp(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onDoubleClick={(event) =>
+                    handlePreviewDoubleClick(
+                      event,
+                      camera.id,
+                    )
+                  }
                 >
                   {showLive ? (
                     <img
@@ -937,7 +1336,11 @@ function Cameras() {
                       alt={`${camera.name || 'Camera'} live stream`}
                       className="camera-live-image"
                       style={{
-                        transform: `rotate(${cameraRotation}deg)`,
+                        transform:
+                          `translate(${view.panX}%, ${view.panY}%) ` +
+                          `rotate(${cameraRotation}deg) ` +
+                          `scale(${view.zoom})`,
+                        transformOrigin: 'center center',
                       }}
                       onError={() => {
                         setStreamErrors((current) => ({
@@ -1024,6 +1427,304 @@ function Cameras() {
                         ? 'FULL'
                         : 'FULL'}
                     </button>
+                  </div>
+
+                  <div className="camera-digital-controls">
+                    <div className="camera-control-group">
+                      <strong>DIGITAL VIEW</strong>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          moveDigital(
+                            camera.id,
+                            0,
+                            -6,
+                          )
+                        }
+                      >
+                        UP
+                      </button>
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            moveDigital(
+                              camera.id,
+                              -6,
+                              0,
+                            )
+                          }
+                        >
+                          LEFT
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            resetDigitalView(
+                              camera.id,
+                            )
+                          }
+                        >
+                          RESET
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            moveDigital(
+                              camera.id,
+                              6,
+                              0,
+                            )
+                          }
+                        >
+                          RIGHT
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          moveDigital(
+                            camera.id,
+                            0,
+                            6,
+                          )
+                        }
+                      >
+                        DOWN
+                      </button>
+
+                      <div className="camera-zoom-row">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            zoomOut(camera.id)
+                          }
+                        >
+                          ZOOM -
+                        </button>
+
+                        <span>
+                          {Math.round(
+                            view.zoom * 100,
+                          )}%
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            zoomIn(camera.id)
+                          }
+                        >
+                          ZOOM +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`camera-control-group camera-ptz-group ${
+                        hasPhysicalPTZ
+                          ? 'ptz-supported'
+                          : 'ptz-unavailable'
+                      }`}
+                    >
+                      <strong>
+                        {hasPhysicalPTZ
+                          ? 'PHYSICAL PTZ'
+                          : 'PTZ'}
+                      </strong>
+
+                      {hasPhysicalPTZ ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={
+                              cameraPTZBusy
+                            }
+                            onClick={() =>
+                              void ptzMove(
+                                camera.id,
+                                0,
+                                0.7,
+                                0,
+                              )
+                            }
+                          >
+                            UP
+                          </button>
+
+                          <div>
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  -0.7,
+                                  0,
+                                  0,
+                                )
+                              }
+                            >
+                              LEFT
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void ptzStop(
+                                  camera.id,
+                                )
+                              }
+                            >
+                              STOP
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  0.7,
+                                  0,
+                                  0,
+                                )
+                              }
+                            >
+                              RIGHT
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={
+                              cameraPTZBusy
+                            }
+                            onClick={() =>
+                              void ptzMove(
+                                camera.id,
+                                0,
+                                -0.7,
+                                0,
+                              )
+                            }
+                          >
+                            DOWN
+                          </button>
+
+                          <div className="camera-zoom-row">
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  0,
+                                  0,
+                                  -0.7,
+                                )
+                              }
+                            >
+                              ZOOM -
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void ptzHome(
+                                  camera.id,
+                                )
+                              }
+                            >
+                              HOME
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  0,
+                                  0,
+                                  0.7,
+                                )
+                              }
+                            >
+                              ZOOM +
+                            </button>
+                          </div>
+
+                          {(
+                            ptzPresets[
+                              camera.id
+                            ] || []
+                          ).length > 0 && (
+                            <select
+                              defaultValue=""
+                              onChange={(
+                                event,
+                              ) => {
+                                const value =
+                                  event.target
+                                    .value
+
+                                if (value) {
+                                  void ptzPreset(
+                                    camera.id,
+                                    value,
+                                  )
+
+                                  event.target.value =
+                                    ''
+                                }
+                              }}
+                            >
+                              <option value="">
+                                PRESET
+                              </option>
+
+                              {(
+                                ptzPresets[
+                                  camera.id
+                                ] || []
+                              ).map(
+                                (preset) => (
+                                  <option
+                                    key={
+                                      preset.token
+                                    }
+                                    value={
+                                      preset.token
+                                    }
+                                  >
+                                    {preset.name ||
+                                      preset.token}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+                          )}
+                        </>
+                      ) : (
+                        <span className="camera-ptz-unavailable">
+                          Physical PTZ not supported
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div

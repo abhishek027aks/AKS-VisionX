@@ -6,10 +6,10 @@ from rest_framework_simplejwt.views import (
 )
 
 from alerts.views import AlertViewSet
-from api.recording_views import RecordingViewSet, StorageLocationViewSet
+from api.recording_views import RecordingViewSet, StorageLocationViewSet, recording_ai_detections
 from streaming.views import (
     CameraLiveTokenView,
-    CameraMJPEGView,
+    camera_mjpeg_view,
 )
 
 from .views import (
@@ -28,6 +28,7 @@ from .views import (
     change_password,
     health_check,
     logout,
+    dashboard_summary,
     LoginTokenObtainPairView,
     operator_test,
     super_admin_test,
@@ -110,6 +111,18 @@ router.register(
 
 urlpatterns = [
     path(
+        "recordings/<int:pk>/ai-detections/",
+        recording_ai_detections,
+        name="recording-ai-detections",
+    ),
+
+    path(
+        "dashboard/summary/",
+        dashboard_summary,
+        name="dashboard-summary",
+    ),
+
+    path(
         "tracking/<str:tracking_id>/",
         tracking_session_summary,
         name="tracking-session-summary",
@@ -176,6 +189,56 @@ urlpatterns = [
     ),
 
     path(
+        "cameras/<int:pk>/ptz/detect/",
+        CameraViewSet.as_view({"post": "ptz_detect"}),
+        name="camera-ptz-detect",
+    ),
+
+    path(
+        "cameras/<int:pk>/ptz/status/",
+        CameraViewSet.as_view({"get": "ptz_status"}),
+        name="camera-ptz-status",
+    ),
+
+    path(
+        "cameras/<int:pk>/ptz/move/",
+        CameraViewSet.as_view({"post": "ptz_move"}),
+        name="camera-ptz-move",
+    ),
+
+    path(
+        "cameras/<int:pk>/ptz/stop/",
+        CameraViewSet.as_view({"post": "ptz_stop"}),
+        name="camera-ptz-stop",
+    ),
+
+    path(
+        "cameras/<int:pk>/ptz/home/",
+        CameraViewSet.as_view({"post": "ptz_home"}),
+        name="camera-ptz-home",
+    ),
+
+    path(
+        "cameras/<int:pk>/ptz/presets/",
+        CameraViewSet.as_view({"get": "ptz_presets"}),
+        name="camera-ptz-presets",
+    ),
+
+    path(
+        "cameras/<int:pk>/ptz/preset/",
+        CameraViewSet.as_view({"post": "ptz_preset"}),
+        name="camera-ptz-preset",
+    ),
+
+    path(
+        "cameras/health/",
+        CameraViewSet.as_view({
+            "get": "health",
+        }),
+        name="camera-health",
+    ),
+
+    path(
         "cameras/<int:camera_id>/live-token/",
         CameraLiveTokenView.as_view(),
         name="camera-live-token",
@@ -183,7 +246,7 @@ urlpatterns = [
 
     path(
         "cameras/<int:camera_id>/live/",
-        CameraMJPEGView.as_view(),
+        camera_mjpeg_view,
         name="camera-live",
     ),
 

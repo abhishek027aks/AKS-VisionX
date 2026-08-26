@@ -1,4 +1,8 @@
-﻿from pathlib import Path
+from django.utils import timezone
+from events.models import Detection
+from rest_framework.decorators import api_view, permission_classes
+from django.shortcuts import get_object_or_404
+from pathlib import Path
 
 from django.http import FileResponse, Http404
 
@@ -26,6 +30,99 @@ from .recording_serializers import (
     RecordingSerializer,
     StorageLocationSerializer,
 )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def recording_ai_detections(request, pk):
+    """
+    Return AI detections associated with one recording.
+
+    Detection timestamps are matched against the recording's
+    camera and recording time window.
+    """
+
+    recording = get_object_or_404(
+        Recording.objects.select_related("camera"),
+        pk=pk,
+    )
+
+    user = request.user
+
+    if not user.groups.filter(
+        name="Super Admin"
+    ).exists():
+        if (
+            recording.organization_id
+            != user.organization_id
+        ):
+            return Response(
+                {"detail": "Recording not found."},
+                status=404,
+            )
+
+    start_time = recording.started_at
+
+    end_time = (
+        recording.ended_at
+        or timezone.now()
+    )
+
+    detections = (
+        Detection.objects
+        .filter(
+            camera_id=recording.camera_id,
+            first_seen_at__lte=end_time,
+            last_seen_at__gte=start_time,
+        )
+        .order_by(
+            "first_seen_at",
+            "id",
+        )
+    )
+
+    data = []
+
+    for detection in detections:
+        timestamp = (
+            detection.first_seen_at
+            or detection.last_seen_at
+        )
+
+        if timestamp is None:
+            continue
+
+        data.append(
+            {
+                "id": detection.id,
+                "timestamp": timestamp,
+                "object_type": detection.object_type,
+                "label": detection.label,
+                "confidence": (
+                    float(detection.confidence)
+                    if detection.confidence is not None
+                    else None
+                ),
+                "tracking_id": detection.tracking_id or "",
+                "bbox_x": float(detection.bbox_x or 0),
+                "bbox_y": float(detection.bbox_y or 0),
+                "bbox_width": float(
+                    detection.bbox_width or 0
+                ),
+                "bbox_height": float(
+                    detection.bbox_height or 0
+                ),
+            }
+        )
+
+    return Response(
+        {
+            "recording_id": recording.id,
+            "started_at": recording.started_at,
+            "ended_at": recording.ended_at,
+            "detections": data,
+        }
+    )
 
 
 class RecordingViewSet(viewsets.ReadOnlyModelViewSet):

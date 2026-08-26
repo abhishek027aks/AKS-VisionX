@@ -597,3 +597,389 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.camera-digital-controls {
+  position: absolute;
+  left: 12px;
+  bottom: 58px;
+  z-index: 8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: min(760px, calc(100% - 24px));
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(4, 10, 18, 0.88);
+  backdrop-filter: blur(8px);
+}
+
+.camera-control-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+}
+
+.camera-control-group strong {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.camera-control-group button,
+.camera-control-group select {
+  min-height: 30px;
+  border: 1px solid #304762;
+  border-radius: 7px;
+  padding: 5px 9px;
+  background: #0d1a2a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.camera-control-group button:hover {
+  background: #162a43;
+}
+
+.camera-control-group button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.camera-control-group > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.camera-zoom-row {
+  display: flex !important;
+  align-items: center;
+  gap: 5px;
+}
+
+.camera-zoom-row span {
+  min-width: 48px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.camera-ptz-unavailable {
+  padding: 7px 10px;
+  border-radius: 7px;
+  background: rgba(255, 183, 0, 0.12);
+  color: #ffd56a;
+  font-size: 11px;
+}
+
+.camera-preview-new .camera-live-image {
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+
+
+/* ==========================================================
+   AKS VisionX ? Professional VMS Camera Viewer
+   ========================================================== */
+
+.camera-preview-new {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 50% 40%,
+      #162336 0,
+      #070d15 70%
+    );
+  border-radius: 14px 14px 0 0;
+  touch-action: none;
+}
+
+.camera-preview-new .camera-live-image {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition:
+    transform 180ms cubic-bezier(.2,.7,.2,1);
+  will-change: transform;
+}
+
+.camera-preview-new:active .camera-live-image {
+  cursor: grabbing;
+}
+
+/* Top status strip */
+.camera-preview-new::after {
+  content: "LIVE MONITORING";
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  pointer-events: none;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(5, 12, 20, .72);
+  border: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.82);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  backdrop-filter: blur(8px);
+}
+
+/* Existing status pill */
+.camera-status {
+  backdrop-filter: blur(10px);
+  background: rgba(5, 12, 20, .78) !important;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px !important;
+  padding: 5px 9px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
+
+/* Compact rotation/reconnect/fullscreen bar */
+.camera-view-toolbar {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  left: auto !important;
+  bottom: auto !important;
+  z-index: 9;
+  display: flex !important;
+  align-items: center;
+  gap: 5px !important;
+  padding: 5px !important;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 10px !important;
+  background: rgba(5, 12, 20, .78) !important;
+  box-shadow: 0 8px 26px rgba(0,0,0,.30);
+  backdrop-filter: blur(12px);
+}
+
+.camera-view-toolbar button {
+  min-width: 30px !important;
+  height: 30px !important;
+  padding: 0 8px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 7px !important;
+  background: rgba(20,31,46,.86) !important;
+  color: #eaf2fb !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+}
+
+.camera-view-toolbar span {
+  min-width: 44px;
+  text-align: center;
+  color: #d5e1ee;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* Main control dock */
+.camera-digital-controls {
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  z-index: 9;
+  display: flex !important;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 7px !important;
+  max-width: none !important;
+  padding: 8px !important;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 12px !important;
+  background: rgba(5,12,20,.84) !important;
+  box-shadow: 0 12px 36px rgba(0,0,0,.35);
+  backdrop-filter: blur(14px);
+}
+
+.camera-control-group {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent;
+}
+
+.camera-control-group > strong {
+  display: none;
+}
+
+.camera-control-group > div {
+  gap: 4px !important;
+}
+
+.camera-control-group button,
+.camera-control-group select {
+  min-width: 32px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 8px !important;
+  border: 1px solid rgba(255,255,255,.11) !important;
+  border-radius: 7px !important;
+  background: rgba(21,34,49,.92) !important;
+  color: #eaf3fb !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.camera-control-group button:hover {
+  background: rgba(36,55,78,.98) !important;
+  border-color: rgba(110,190,255,.36) !important;
+}
+
+.camera-control-group button:active {
+  transform: scale(.96);
+}
+
+.camera-zoom-row {
+  margin-left: 2px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255,255,255,.10);
+}
+
+.camera-zoom-row span {
+  min-width: 45px !important;
+  color: #8fd2ff;
+  font-size: 10px !important;
+}
+
+.camera-ptz-group {
+  margin-left: 2px;
+  padding-left: 7px !important;
+  border-left: 1px solid rgba(255,255,255,.10) !important;
+}
+
+.camera-ptz-group.ptz-unavailable {
+  opacity: .58;
+}
+
+.camera-ptz-unavailable {
+  padding: 0 4px !important;
+  background: transparent !important;
+  color: #aebccc !important;
+  font-size: 9px !important;
+  white-space: nowrap;
+}
+
+/* AI/HUD friendly footer area */
+.camera-card-body {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10,19,31,.98),
+      rgba(7,14,24,.98)
+    );
+}
+
+.camera-name-row h3 {
+  letter-spacing: -.01em;
+}
+
+.running-state.running {
+  box-shadow: 0 0 0 3px rgba(38,220,145,.07);
+}
+
+.recording-state.recording {
+  box-shadow: 0 0 0 3px rgba(255,55,75,.06);
+}
+
+/* Fullscreen viewer */
+.camera-preview-new.is-fullscreen {
+  border-radius: 0 !important;
+}
+
+.camera-preview-new.is-fullscreen .camera-digital-controls {
+  left: 22px !important;
+  right: 22px !important;
+  bottom: 20px !important;
+}
+
+.camera-preview-new.is-fullscreen .camera-view-toolbar {
+  top: 20px !important;
+  right: 20px !important;
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .camera-digital-controls {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    padding: 6px !important;
+  }
+
+  .camera-digital-controls button {
+    min-width: 28px;
+    padding: 0 6px !important;
+  }
+
+  .camera-ptz-unavailable {
+    display: none;
+  }
+}
+
+
+/* Final VMS control polish */
+.camera-digital-controls {
+  min-height: 44px;
+  align-items: center !important;
+}
+
+.camera-control-group {
+  background: transparent !important;
+}
+
+.camera-ptz-group.ptz-unavailable {
+  margin-left: auto;
+  padding-left: 8px !important;
+  opacity: .42 !important;
+}
+
+.camera-ptz-group.ptz-unavailable
+.camera-ptz-unavailable {
+  font-size: 8px !important;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.camera-control-group button {
+  font-family:
+    Inter,
+    Segoe UI,
+    Arial,
+    sans-serif;
+}
+
+.camera-view-toolbar button {
+  font-family:
+    Inter,
+    Segoe UI,
+    Arial,
+    sans-serif;
+}
+
+@media (min-width: 1000px) {
+  .camera-digital-controls {
+    width: max-content;
+    max-width: calc(100% - 24px);
+  }
+}
+

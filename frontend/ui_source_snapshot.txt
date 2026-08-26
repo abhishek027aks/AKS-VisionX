@@ -1,0 +1,5231 @@
+
+
+====================================================================================================
+===== src/pages/Overview.tsx =====
+====================================================================================================
+﻿import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+
+import {
+  getDashboardSummary,
+} from '../services/dashboardService'
+
+type OverviewProps = {
+  token: string
+}
+
+type CameraSummary = {
+  id: number
+  name: string
+  status?: string
+  running?: boolean
+  recording?: boolean
+  last_seen?: string | null
+}
+
+type DashboardSummary = {
+  cameras: CameraSummary[]
+
+  counts: {
+    cameras: number
+    online_cameras: number
+    running_cameras: number
+    recording_cameras: number
+    detections: number
+    persons: number
+    vehicles: number
+    events: number
+    alerts: number
+    active_alerts: number
+    tracking_sessions: number
+    tracking_points: number
+    tracking_locations: number
+    camera_visits: number
+    active_tracking: number
+    recordings: number
+  }
+
+  recent_events: any[]
+  recent_alerts: any[]
+  recent_detections: any[]
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return '—'
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return '—'
+  }
+
+  return date.toLocaleString()
+}
+
+function Overview({
+  token,
+}: OverviewProps) {
+  const [data, setData] =
+    useState<DashboardSummary | null>(null)
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [error, setError] =
+    useState('')
+
+  const loadDashboard = useCallback(
+    async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        const result =
+          await getDashboardSummary(token)
+
+        setData(
+          result as DashboardSummary,
+        )
+      } catch (err: any) {
+        console.error(
+          'DASHBOARD LOAD ERROR:',
+          err,
+        )
+
+        setError(
+          err?.response?.data?.detail ||
+            'Unable to load dashboard data.',
+        )
+      } finally {
+        setLoading(false)
+      }
+    },
+    [token],
+  )
+
+  useEffect(() => {
+    void loadDashboard()
+  }, [loadDashboard])
+
+  const counts = data?.counts
+
+  const recentEvents =
+    useMemo(
+      () =>
+        data?.recent_events || [],
+      [data],
+    )
+
+  const recentAlerts =
+    useMemo(
+      () =>
+        data?.recent_alerts || [],
+      [data],
+    )
+
+  const recentDetections =
+    useMemo(
+      () =>
+        data?.recent_detections || [],
+      [data],
+    )
+
+  if (loading) {
+    return (
+      <div className="page-placeholder">
+        <div className="page-placeholder-icon">
+          ⌂
+        </div>
+
+        <h2>
+          Loading Security Overview...
+        </h2>
+
+        <p>
+          Loading live monitoring statistics.
+        </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="page-placeholder">
+        <div className="page-placeholder-icon">
+          !
+        </div>
+
+        <h2>
+          Dashboard Error
+        </h2>
+
+        <p>{error}</p>
+
+        <button
+          type="button"
+          onClick={() =>
+            void loadDashboard()
+          }
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  if (!data || !counts) {
+    return (
+      <div className="page-placeholder">
+        <div className="page-placeholder-icon">
+          !
+        </div>
+
+        <h2>
+          No Dashboard Data
+        </h2>
+
+        <p>
+          The dashboard returned no data.
+        </p>
+
+        <button
+          type="button"
+          onClick={() =>
+            void loadDashboard()
+          }
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overview-page">
+      <div className="camera-page-header">
+        <div>
+          <h2>
+            Security Overview
+          </h2>
+
+          <p>
+            Real-time AKS VisionX
+            monitoring summary.
+          </p>
+        </div>
+
+        <div className="camera-header-actions">
+          <button
+            className="camera-refresh-button"
+            onClick={() =>
+              void loadDashboard()
+            }
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="camera-summary">
+        <div>
+          <span>Total Cameras</span>
+          <strong>
+            {counts.cameras}
+          </strong>
+        </div>
+
+        <div>
+          <span>Online</span>
+          <strong className="summary-online">
+            {counts.online_cameras}
+          </strong>
+        </div>
+
+        <div>
+          <span>Running</span>
+          <strong>
+            {counts.running_cameras}
+          </strong>
+        </div>
+
+        <div>
+          <span>Recording</span>
+          <strong className="summary-recording">
+            {counts.recording_cameras}
+          </strong>
+        </div>
+      </div>
+
+      <div className="camera-grid-new">
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>AI Detections</h3>
+
+            <strong>
+              {counts.detections}
+            </strong>
+
+            <p>
+              Recent: {recentDetections.length}
+            </p>
+          </div>
+        </article>
+
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>Persons</h3>
+
+            <strong>
+              {counts.persons}
+            </strong>
+
+            <p>
+              Person profiles
+            </p>
+          </div>
+        </article>
+
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>Vehicles</h3>
+
+            <strong>
+              {counts.vehicles}
+            </strong>
+
+            <p>
+              Vehicle profiles
+            </p>
+          </div>
+        </article>
+
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>Tracking</h3>
+
+            <strong>
+              {counts.active_tracking}
+            </strong>
+
+            <p>
+              Active camera visits
+            </p>
+          </div>
+        </article>
+
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>Events</h3>
+
+            <strong>
+              {counts.events}
+            </strong>
+
+            <p>
+              Security events
+            </p>
+          </div>
+        </article>
+
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>Alerts</h3>
+
+            <strong>
+              {counts.alerts}
+            </strong>
+
+            <p>
+              Active: {counts.active_alerts}
+            </p>
+          </div>
+        </article>
+
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>Tracking Points</h3>
+
+            <strong>
+              {counts.tracking_points}
+            </strong>
+
+            <p>
+              Stored movement points
+            </p>
+          </div>
+        </article>
+
+        <article className="camera-card-new">
+          <div className="camera-card-body">
+            <h3>Recordings</h3>
+
+            <strong>
+              {counts.recordings}
+            </strong>
+
+            <p>
+              Recording records
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <div className="camera-grid-new">
+        <section className="camera-card-new">
+          <div className="camera-card-body">
+            <div className="camera-name-row">
+              <h3>
+                Camera Status
+              </h3>
+
+              <span>
+                {counts.cameras}
+              </span>
+            </div>
+
+            {data.cameras.length === 0 ? (
+              <p>
+                No cameras found.
+              </p>
+            ) : (
+              data.cameras.map(
+                (camera) => (
+                  <div
+                    key={camera.id}
+                    className="camera-test-result"
+                  >
+                    <strong>
+                      {camera.name ||
+                        `Camera ${camera.id}`}
+                    </strong>
+
+                    <div>
+                      Status:{' '}
+                      {camera.status ||
+                        'UNKNOWN'}
+                    </div>
+
+                    <div>
+                      Monitoring:{' '}
+                      {camera.running
+                        ? 'RUNNING'
+                        : 'STOPPED'}
+                    </div>
+
+                    <div>
+                      Recording:{' '}
+                      {camera.recording
+                        ? 'YES'
+                        : 'NO'}
+                    </div>
+
+                    <small>
+                      Last seen:{' '}
+                      {formatDate(
+                        camera.last_seen,
+                      )}
+                    </small>
+                  </div>
+                ),
+              )
+            )}
+          </div>
+        </section>
+
+        <section className="camera-card-new">
+          <div className="camera-card-body">
+            <div className="camera-name-row">
+              <h3>
+                Recent Events
+              </h3>
+
+              <span>
+                {counts.events}
+              </span>
+            </div>
+
+            {recentEvents.length === 0 ? (
+              <p>
+                No security events recorded.
+              </p>
+            ) : (
+              recentEvents.map(
+                (event) => (
+                  <div
+                    key={event.id}
+                    className="camera-test-result"
+                  >
+                    <strong>
+                      {event.title ||
+                        event.event_type ||
+                        'Event'}
+                    </strong>
+
+                    <div>
+                      {event.description ||
+                        'No description'}
+                    </div>
+
+                    <small>
+                      {event.status ||
+                        'NEW'}
+                      {' • '}
+                      {formatDate(
+                        event.occurred_at,
+                      )}
+                    </small>
+                  </div>
+                ),
+              )
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="camera-grid-new">
+        <section className="camera-card-new">
+          <div className="camera-card-body">
+            <div className="camera-name-row">
+              <h3>
+                Recent Alerts
+              </h3>
+
+              <span>
+                {counts.alerts}
+              </span>
+            </div>
+
+            {recentAlerts.length === 0 ? (
+              <p>
+                No alerts currently recorded.
+              </p>
+            ) : (
+              recentAlerts.map(
+                (alert) => (
+                  <div
+                    key={alert.id}
+                    className="camera-test-result"
+                  >
+                    <strong>
+                      {alert.title ||
+                        'Alert'}
+                    </strong>
+
+                    <div>
+                      {alert.message ||
+                        'No message'}
+                    </div>
+
+                    <small>
+                      {alert.severity ||
+                        'INFO'}
+                      {' • '}
+                      {alert.status ||
+                        'NEW'}
+                      {' • '}
+                      {formatDate(
+                        alert.created_at,
+                      )}
+                    </small>
+                  </div>
+                ),
+              )
+            )}
+          </div>
+        </section>
+
+        <section className="camera-card-new">
+          <div className="camera-card-body">
+            <div className="camera-name-row">
+              <h3>
+                Recent AI Detections
+              </h3>
+
+              <span>
+                {counts.detections}
+              </span>
+            </div>
+
+            {recentDetections.length === 0 ? (
+              <p>
+                No detections available.
+              </p>
+            ) : (
+              recentDetections.map(
+                (detection) => (
+                  <div
+                    key={detection.id}
+                    className="camera-test-result"
+                  >
+                    <strong>
+                      {detection.label ||
+                        detection.object_type ||
+                        'Detection'}
+                    </strong>
+
+                    <span>
+                      {' • '}
+                      Confidence:{' '}
+                      {detection.confidence ==
+                      null
+                        ? '—'
+                        : `${(
+                            Number(
+                              detection.confidence,
+                            ) * 100
+                          ).toFixed(1)}%`}
+                    </span>
+
+                    <div>
+                      Camera:{' '}
+                      {detection.camera_id ??
+                        '—'}
+                    </div>
+
+                    <small>
+                      {formatDate(
+                        detection.last_seen_at,
+                      )}
+                    </small>
+                  </div>
+                ),
+              )
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+export default Overview
+
+
+====================================================================================================
+===== src/pages/Cameras.tsx =====
+====================================================================================================
+﻿import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
+import {
+  createCamera,
+  deleteCamera,
+  getCameraLiveToken,
+  getCameraStatus,
+  getCameras,
+  startCamera,
+  stopCamera,
+  testCameraConnection,
+  updateCamera,
+  detectCameraPTZ,
+  getCameraPTZStatus,
+  moveCameraPTZ,
+  stopCameraPTZ,
+  homeCameraPTZ,
+  getCameraPTZPresets,
+  gotoCameraPTZPreset,
+  type CameraPayload,
+  type PTZPreset,
+} from '../services/cameraService'
+import type { Camera } from '../types/camera'
+import './Cameras.css'
+
+type Rotation = 0 | 90 | 180 | 270
+
+type DigitalView = {
+  zoom: number
+  panX: number
+  panY: number
+}
+
+type PTZState = {
+  supported: boolean
+  onvif_supported: boolean
+  ptz_supported: boolean
+  pan?: number | null
+  tilt?: number | null
+  zoom?: number | null
+}
+
+const DEFAULT_DIGITAL_VIEW: DigitalView = {
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+}
+
+type CameraFormState = CameraPayload & {
+  password: string
+}
+
+const emptyCameraForm: CameraFormState = {
+  name: '',
+  main_stream_url: '',
+  username: '',
+  password: '',
+  connection_type: 'RTSP',
+  description: '',
+  location: '',
+  enabled: true,
+  recording_enabled: true,
+  ai_supported: true,
+  rtsp_supported: true,
+}
+
+function getMainStreamUrl(camera: Camera) {
+  return camera.main_stream?.url || ''
+}
+
+function Cameras() {
+  const token = localStorage.getItem('aks_token') || ''
+
+  const [cameras, setCameras] = useState<Camera[]>([])
+  const [loading, setLoading] = useState(true)
+  const [actionId, setActionId] = useState<number | null>(null)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [streamErrors, setStreamErrors] = useState<
+    Record<number, boolean>
+  >({})
+  const [liveTokens, setLiveTokens] = useState<
+    Record<number, string>
+  >({})
+  const [streamVersion, setStreamVersion] = useState<
+    Record<number, number>
+  >({})
+  const [rotation, setRotation] = useState<
+    Record<number, Rotation>
+  >({})
+  const [fullscreenId, setFullscreenId] = useState<
+    number | null
+  >(null)
+  const [editingCamera, setEditingCamera] = useState<
+    Camera | null
+  >(null)
+  const [showCameraForm, setShowCameraForm] = useState(false)
+  const [form, setForm] = useState<CameraFormState>(
+    emptyCameraForm,
+  )
+  const [savingCamera, setSavingCamera] = useState(false)
+  const [testingId, setTestingId] = useState<number | null>(null)
+  const [testResults, setTestResults] = useState<
+    Record<number, string>
+  >({})
+
+  const [digitalView, setDigitalView] = useState<
+    Record<number, DigitalView>
+  >({})
+
+  const [ptzStatus, setPtzStatus] = useState<
+    Record<number, PTZState>
+  >({})
+
+  const [ptzPresets, setPtzPresets] = useState<
+    Record<number, PTZPreset[]>
+  >({})
+
+  const [ptzBusy, setPtzBusy] = useState<
+    Record<number, boolean>
+  >({})
+
+  const previewRefs = useRef<
+    Record<number, HTMLDivElement | null>
+  >({})
+
+  const dragRefs = useRef<
+    Record<
+      number,
+      {
+        startX: number
+        startY: number
+        panX: number
+        panY: number
+      }
+    >
+  >({})
+
+  const clamp = (
+    value: number,
+    min: number,
+    max: number,
+  ) => Math.max(min, Math.min(max, value))
+
+  const getDigitalView = (cameraId: number) =>
+    digitalView[cameraId] || DEFAULT_DIGITAL_VIEW
+
+  const setCameraDigitalView = (
+    cameraId: number,
+    next: Partial<DigitalView>,
+  ) => {
+    setDigitalView((current) => ({
+      ...current,
+      [cameraId]: {
+        ...getDigitalView(cameraId),
+        ...next,
+      },
+    }))
+  }
+
+  const zoomIn = (cameraId: number) => {
+    const view = getDigitalView(cameraId)
+
+    setCameraDigitalView(cameraId, {
+      zoom: clamp(view.zoom + 0.25, 1, 4),
+    })
+  }
+
+  const zoomOut = (cameraId: number) => {
+    const view = getDigitalView(cameraId)
+
+    const zoom = clamp(view.zoom - 0.25, 1, 4)
+
+    setCameraDigitalView(cameraId, {
+      zoom,
+      panX:
+        zoom === 1
+          ? 0
+          : view.panX,
+      panY:
+        zoom === 1
+          ? 0
+          : view.panY,
+    })
+  }
+
+  const resetDigitalView = (cameraId: number) => {
+    setCameraDigitalView(
+      cameraId,
+      DEFAULT_DIGITAL_VIEW,
+    )
+  }
+
+  const moveDigital = (
+    cameraId: number,
+    x: number,
+    y: number,
+  ) => {
+    const view = getDigitalView(cameraId)
+
+    setCameraDigitalView(cameraId, {
+      panX: clamp(view.panX + x, -35, 35),
+      panY: clamp(view.panY + y, -35, 35),
+    })
+  }
+
+  const refreshPTZ = useCallback(
+    async (cameraId: number) => {
+      if (!token) return
+
+      try {
+        await detectCameraPTZ(
+          token,
+          cameraId,
+        )
+
+        const status =
+          await getCameraPTZStatus(
+            token,
+            cameraId,
+          )
+
+        setPtzStatus((current) => ({
+          ...current,
+          [cameraId]: status,
+        }))
+
+        if (status.ptz_supported) {
+          const result =
+            await getCameraPTZPresets(
+              token,
+              cameraId,
+            )
+
+          setPtzPresets((current) => ({
+            ...current,
+            [cameraId]:
+              result.presets || [],
+          }))
+        }
+      } catch (err) {
+        console.warn(
+          `PTZ detection failed for camera ${cameraId}`,
+          err,
+        )
+
+        setPtzStatus((current) => ({
+          ...current,
+          [cameraId]: {
+            supported: false,
+            onvif_supported: false,
+            ptz_supported: false,
+          },
+        }))
+      }
+    },
+    [token],
+  )
+
+  const ptzMove = async (
+    cameraId: number,
+    pan: number,
+    tilt: number,
+    zoom: number,
+  ) => {
+    setPtzBusy((current) => ({
+      ...current,
+      [cameraId]: true,
+    }))
+
+    try {
+      await moveCameraPTZ(
+        token,
+        cameraId,
+        pan,
+        tilt,
+        zoom,
+        0.8,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'PTZ movement failed.',
+      )
+    } finally {
+      setPtzBusy((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+    }
+  }
+
+  const ptzStop = async (
+    cameraId: number,
+  ) => {
+    try {
+      await stopCameraPTZ(
+        token,
+        cameraId,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Unable to stop PTZ.',
+      )
+    }
+  }
+
+  const ptzHome = async (
+    cameraId: number,
+  ) => {
+    try {
+      await homeCameraPTZ(
+        token,
+        cameraId,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Unable to move camera home.',
+      )
+    }
+  }
+
+  const ptzPreset = async (
+    cameraId: number,
+    presetToken: string,
+  ) => {
+    try {
+      await gotoCameraPTZPreset(
+        token,
+        cameraId,
+        presetToken,
+      )
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Unable to move to preset.',
+      )
+    }
+  }
+
+  const loadCameras = useCallback(async () => {
+    if (!token) return
+
+    try {
+      const data = await getCameras(token)
+      setCameras(data)
+      setError('')
+
+      void Promise.all(
+        data.map((camera) =>
+          refreshPTZ(camera.id),
+        ),
+      )
+    } catch (err: any) {
+      console.error('CAMERA LOAD ERROR:', err)
+
+      if (err?.response?.status === 401) {
+        localStorage.removeItem('aks_token')
+        window.location.reload()
+        return
+      }
+
+      setError('Unable to load cameras.')
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
+
+  const refreshStatus = useCallback(
+    async (cameraList: Camera[]) => {
+      if (!token) return
+
+      const updated = await Promise.all(
+        cameraList.map(async (camera) => {
+          try {
+            const status = await getCameraStatus(
+              token,
+              camera.id,
+            )
+
+            return {
+              ...camera,
+              ...status,
+            }
+          } catch {
+            return camera
+          }
+        }),
+      )
+
+      setCameras((current) =>
+        current.map((camera) => {
+          const fresh = updated.find(
+            (item) => item.id === camera.id,
+          )
+
+          return fresh || camera
+        }),
+      )
+    },
+    [token],
+  )
+
+  const requestLiveToken = useCallback(
+    async (cameraId: number) => {
+      if (!token) return false
+
+      try {
+        const result = await getCameraLiveToken(
+          token,
+          cameraId,
+        )
+
+        setLiveTokens((current) => ({
+          ...current,
+          [cameraId]: result.token,
+        }))
+
+        setStreamErrors((current) => ({
+          ...current,
+          [cameraId]: false,
+        }))
+
+        setStreamVersion((current) => ({
+          ...current,
+          [cameraId]: (current[cameraId] || 0) + 1,
+        }))
+
+        return true
+      } catch (err: any) {
+        console.error(
+          `LIVE TOKEN ERROR [${cameraId}]:`,
+          err,
+        )
+
+        setLiveTokens((current) => {
+          const next = { ...current }
+          delete next[cameraId]
+          return next
+        })
+
+        setStreamErrors((current) => ({
+          ...current,
+          [cameraId]: true,
+        }))
+
+        return false
+      }
+    },
+    [token],
+  )
+
+  useEffect(() => {
+    loadCameras()
+  }, [loadCameras])
+
+  useEffect(() => {
+    if (!cameras.length) return
+
+    refreshStatus(cameras)
+
+    const interval = window.setInterval(() => {
+      refreshStatus(cameras)
+    }, 5000)
+
+    return () => window.clearInterval(interval)
+  }, [cameras, refreshStatus])
+
+  useEffect(() => {
+    if (!token) return
+
+    cameras.forEach((camera) => {
+      const running =
+        camera.running === true &&
+        camera.status === 'ONLINE'
+
+      if (
+        running &&
+        !liveTokens[camera.id] &&
+        !streamErrors[camera.id]
+      ) {
+        void requestLiveToken(camera.id)
+      }
+
+      if (!running && liveTokens[camera.id]) {
+        setLiveTokens((current) => {
+          const next = { ...current }
+          delete next[camera.id]
+          return next
+        })
+      }
+    })
+  }, [
+    cameras,
+    token,
+    liveTokens,
+    streamErrors,
+    requestLiveToken,
+  ])
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      const element = document.fullscreenElement
+
+      if (!element) {
+        setFullscreenId(null)
+        return
+      }
+
+      const cameraId = Number(
+        (element as HTMLElement).dataset.cameraId,
+      )
+
+      setFullscreenId(
+        Number.isFinite(cameraId) ? cameraId : null,
+      )
+    }
+
+    document.addEventListener(
+      'fullscreenchange',
+      onFullscreenChange,
+    )
+
+    return () => {
+      document.removeEventListener(
+        'fullscreenchange',
+        onFullscreenChange,
+      )
+    }
+  }, [])
+
+  const handleStart = async (cameraId: number) => {
+    setActionId(cameraId)
+    setMessage('')
+    setError('')
+
+    try {
+      setStreamErrors((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+
+      const response = await startCamera(
+        token,
+        cameraId,
+      )
+
+      setMessage(
+        `Camera ${cameraId}: ${
+          response?.status || 'started'
+        }`,
+      )
+
+      await loadCameras()
+      await requestLiveToken(cameraId)
+    } catch (err: any) {
+      console.error('START ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to start camera ${cameraId}.`,
+      )
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleStop = async (cameraId: number) => {
+    setActionId(cameraId)
+    setMessage('')
+    setError('')
+
+    try {
+      const response = await stopCamera(
+        token,
+        cameraId,
+      )
+
+      setMessage(
+        `Camera ${cameraId}: ${
+          response?.status || 'stopping'
+        }`,
+      )
+
+      setLiveTokens((current) => {
+        const next = { ...current }
+        delete next[cameraId]
+        return next
+      })
+
+      setStreamErrors((current) => ({
+        ...current,
+        [cameraId]: false,
+      }))
+
+      if (
+        document.fullscreenElement ===
+        previewRefs.current[cameraId]
+      ) {
+        await document.exitFullscreen().catch(() => {})
+      }
+
+      await loadCameras()
+    } catch (err: any) {
+      console.error('STOP ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          `Unable to stop camera ${cameraId}.`,
+      )
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handlePreviewWheel = (
+    event: React.WheelEvent,
+    cameraId: number,
+  ) => {
+    event.preventDefault()
+
+    const view =
+      digitalView[cameraId] ||
+      DEFAULT_DIGITAL_VIEW
+
+    const delta =
+      event.deltaY < 0
+        ? 0.15
+        : -0.15
+
+    const zoom = clamp(
+      view.zoom + delta,
+      1,
+      4,
+    )
+
+    setCameraDigitalView(
+      cameraId,
+      {
+        zoom,
+        panX:
+          zoom === 1
+            ? 0
+            : view.panX,
+        panY:
+          zoom === 1
+            ? 0
+            : view.panY,
+      },
+    )
+  }
+
+  const handlePreviewPointerDown = (
+    event: React.PointerEvent,
+    cameraId: number,
+  ) => {
+    const view =
+      digitalView[cameraId] ||
+      DEFAULT_DIGITAL_VIEW
+
+    if (view.zoom <= 1) {
+      return
+    }
+
+    ;(
+      event.currentTarget as HTMLElement
+    ).setPointerCapture(event.pointerId)
+
+    dragRefs.current[cameraId] = {
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: view.panX,
+      panY: view.panY,
+    }
+  }
+
+  const handlePreviewPointerMove = (
+    event: React.PointerEvent,
+    cameraId: number,
+  ) => {
+    const drag =
+      dragRefs.current[cameraId]
+
+    if (!drag) {
+      return
+    }
+
+    const element =
+      previewRefs.current[cameraId]
+
+    if (!element) {
+      return
+    }
+
+    const rect =
+      element.getBoundingClientRect()
+
+    const sensitivity =
+      Math.max(
+        0.35,
+        (digitalView[cameraId]?.zoom || 1) *
+          0.6,
+      )
+
+    const dx =
+      ((event.clientX - drag.startX) /
+        Math.max(rect.width, 1)) *
+      100 *
+      sensitivity
+
+    const dy =
+      ((event.clientY - drag.startY) /
+        Math.max(rect.height, 1)) *
+      100 *
+      sensitivity
+
+    setCameraDigitalView(
+      cameraId,
+      {
+        panX: clamp(
+          drag.panX + dx,
+          -35,
+          35,
+        ),
+        panY: clamp(
+          drag.panY + dy,
+          -35,
+          35,
+        ),
+      },
+    )
+  }
+
+  const handlePreviewPointerUp = (
+    event: React.PointerEvent,
+    cameraId: number,
+  ) => {
+    delete dragRefs.current[cameraId]
+
+    try {
+      ;(
+        event.currentTarget as HTMLElement
+      ).releasePointerCapture(event.pointerId)
+    } catch {
+      // Pointer may already have been released.
+    }
+  }
+
+  const handlePreviewDoubleClick = (
+    event: React.MouseEvent,
+    cameraId: number,
+  ) => {
+    event.preventDefault()
+    resetDigitalView(cameraId)
+  }
+
+  const handleFullscreen = async (
+    cameraId: number,
+  ) => {
+    const element = previewRefs.current[cameraId]
+
+    if (!element) return
+
+    try {
+      if (document.fullscreenElement === element) {
+        await document.exitFullscreen()
+      } else {
+        await element.requestFullscreen()
+      }
+    } catch (err) {
+      console.error('FULLSCREEN ERROR:', err)
+      setError(
+        'Fullscreen is not available in this browser.',
+      )
+    }
+  }
+
+  const handleRotate = (
+    cameraId: number,
+    direction: 1 | -1,
+  ) => {
+    setRotation((current) => {
+      const currentRotation =
+        current[cameraId] || 0
+
+      const next =
+        (currentRotation + direction * 90 + 360) %
+        360
+
+      return {
+        ...current,
+        [cameraId]: next as Rotation,
+      }
+    })
+  }
+
+  const handleReconnect = async (
+    cameraId: number,
+  ) => {
+    setMessage('')
+    setError('')
+
+    setStreamErrors((current) => ({
+      ...current,
+      [cameraId]: false,
+    }))
+
+    const success =
+      await requestLiveToken(cameraId)
+
+    if (!success) {
+      setError(
+        `Unable to reconnect Camera ${cameraId}.`,
+      )
+    }
+  }
+
+  const openAddForm = () => {
+    setEditingCamera(null)
+    setForm(emptyCameraForm)
+    setShowCameraForm(true)
+    setMessage('')
+    setError('')
+  }
+
+  const openEditForm = (camera: Camera) => {
+    setEditingCamera(camera)
+    setForm({
+      name: camera.name || '',
+      main_stream_url: getMainStreamUrl(camera),
+      username: camera.username || '',
+      password: '',
+      connection_type: camera.connection_type || 'RTSP',
+      description: camera.description || '',
+      location: camera.location || '',
+      enabled: camera.enabled !== false,
+      recording_enabled: camera.recording_enabled !== false,
+      ai_supported: camera.ai_supported === true,
+      rtsp_supported: true,
+    })
+    setShowCameraForm(true)
+    setMessage('')
+    setError('')
+  }
+
+  const validateForm = () => {
+    if (!form.name.trim()) {
+      return 'Camera name is required.'
+    }
+
+    if (!form.main_stream_url.trim()) {
+      return 'RTSP/stream URL is required.'
+    }
+
+    if (
+      !/^((rtsp|http|https):\/\/).+/i.test(
+        form.main_stream_url.trim(),
+      )
+    ) {
+      return 'Stream URL must start with rtsp://, http://, or https://.'
+    }
+
+    return ''
+  }
+
+  const cameraPayload = () => {
+    const streamUrl = form.main_stream_url.trim()
+    const payload: CameraPayload = {
+      name: form.name.trim(),
+      main_stream_url: streamUrl,
+      username: form.username.trim(),
+      connection_type: form.connection_type,
+      description: form.description.trim(),
+      location: form.location.trim(),
+      enabled: form.enabled,
+      recording_enabled: form.recording_enabled,
+      ai_supported: form.ai_supported,
+      rtsp_supported:
+        form.connection_type === 'RTSP' ||
+        streamUrl.toLowerCase().startsWith('rtsp://'),
+    }
+
+    if (form.password) {
+      payload.credential_encrypted = form.password
+    }
+
+    return payload
+  }
+
+  const saveCamera = async (event: FormEvent) => {
+    event.preventDefault()
+
+    const validationError = validateForm()
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setSavingCamera(true)
+    setMessage('')
+    setError('')
+
+    try {
+      const saved = editingCamera
+        ? await updateCamera(
+            token,
+            editingCamera.id,
+            cameraPayload(),
+          )
+        : await createCamera(token, cameraPayload())
+
+      setMessage(
+        `${saved.name || 'Camera'} ${
+          editingCamera ? 'updated' : 'added'
+        } successfully.`,
+      )
+      setShowCameraForm(false)
+      setEditingCamera(null)
+      setForm(emptyCameraForm)
+      await loadCameras()
+    } catch (err: any) {
+      const data = err?.response?.data
+      setError(
+        data?.detail ||
+          data?.name?.[0] ||
+          data?.main_stream_url?.[0] ||
+          data?.organization?.[0] ||
+          'Unable to save camera.',
+      )
+    } finally {
+      setSavingCamera(false)
+    }
+  }
+
+  const handleTestConnection = async (
+    camera: Camera,
+    streamUrl?: string,
+  ) => {
+    setTestingId(camera.id)
+    setError('')
+    setTestResults((current) => ({
+      ...current,
+      [camera.id]: 'Testing...',
+    }))
+
+    try {
+      const result = await testCameraConnection(
+        token,
+        camera.id,
+        streamUrl,
+      )
+
+      setTestResults((current) => ({
+        ...current,
+        [camera.id]: `${result.status}: ${result.detail}`,
+      }))
+
+      await refreshStatus([camera])
+    } catch (err: any) {
+      setTestResults((current) => ({
+        ...current,
+        [camera.id]:
+          err?.response?.data?.detail ||
+          'Connection test failed.',
+      }))
+    } finally {
+      setTestingId(null)
+    }
+  }
+
+  const handleDeleteCamera = async (camera: Camera) => {
+    if (
+      !window.confirm(
+        `Remove "${camera.name}"? Existing recordings and events will remain in history.`,
+      )
+    ) {
+      return
+    }
+
+    setActionId(camera.id)
+    setMessage('')
+    setError('')
+
+    try {
+      if (camera.running) {
+        await stopCamera(token, camera.id)
+      }
+
+      await deleteCamera(token, camera.id)
+      setMessage(`${camera.name} removed. Recordings were not deleted.`)
+      await loadCameras()
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Unable to delete camera.',
+      )
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const online = cameras.filter(
+    (camera) => camera.status === 'ONLINE',
+  ).length
+
+  const running = cameras.filter(
+    (camera) => camera.running === true,
+  ).length
+
+  const recording = cameras.filter(
+    (camera) => camera.recording === true,
+  ).length
+
+  const getLiveUrl = (
+    cameraId: number,
+    liveToken: string,
+  ) => {
+    const version = streamVersion[cameraId] || 0
+    const backendOrigin =
+      import.meta.env.VITE_API_ORIGIN ||
+      'http://127.0.0.1:8000'
+
+    return `${backendOrigin}/api/cameras/${cameraId}/live/?access_token=${encodeURIComponent(
+      liveToken,
+    )}&ai_overlay=1&v=${version}`
+  }
+
+  return (
+    <div className="cameras-page">
+      <div className="camera-page-header">
+        <div>
+          <h2>Camera Monitoring</h2>
+          <p>
+            Live camera status and monitoring controls.
+          </p>
+        </div>
+
+        <div className="camera-header-actions">
+          <button
+            className="camera-refresh-button"
+            onClick={loadCameras}
+            disabled={loading}
+          >
+            Refresh
+          </button>
+
+          <button
+            className="camera-add-button"
+            onClick={openAddForm}
+          >
+            + Add Camera
+          </button>
+        </div>
+      </div>
+
+      {showCameraForm && (
+        <form className="camera-form" onSubmit={saveCamera}>
+          <div className="camera-form-header">
+            <div>
+              <h3>
+                {editingCamera ? 'Edit Camera' : 'Add Camera'}
+              </h3>
+              <p>
+                Configure camera details and its main stream.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowCameraForm(false)}
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="camera-form-grid">
+            <label>
+              Camera name
+              <input
+                value={form.name}
+                onChange={(event) =>
+                  setForm({ ...form, name: event.target.value })
+                }
+                required
+              />
+            </label>
+
+            <label>
+              Protocol/type
+              <select
+                value={form.connection_type}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    connection_type: event.target.value,
+                  })
+                }
+              >
+                <option value="RTSP">RTSP</option>
+                <option value="ONVIF">ONVIF</option>
+                <option value="NVR">NVR</option>
+                <option value="LOCAL">Local</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </label>
+
+            <label className="wide">
+              RTSP/stream URL
+              <input
+                value={form.main_stream_url}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    main_stream_url: event.target.value,
+                  })
+                }
+                placeholder="rtsp://camera-host/stream"
+                required
+              />
+            </label>
+
+            <label>
+              Username
+              <input
+                value={form.username}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    username: event.target.value,
+                  })
+                }
+                autoComplete="off"
+              />
+            </label>
+
+            <label>
+              Password
+              <input
+                value={form.password}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    password: event.target.value,
+                  })
+                }
+                placeholder={
+                  editingCamera
+                    ? 'Leave blank to keep saved password'
+                    : ''
+                }
+                type="password"
+                autoComplete="new-password"
+              />
+            </label>
+
+            <label>
+              Location
+              <input
+                value={form.location}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    location: event.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="wide">
+              Description
+              <textarea
+                value={form.description}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    description: event.target.value,
+                  })
+                }
+                rows={3}
+              />
+            </label>
+          </div>
+
+          <div className="camera-form-toggles">
+            <label>
+              <input
+                checked={form.enabled}
+                type="checkbox"
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    enabled: event.target.checked,
+                  })
+                }
+              />
+              Enabled
+            </label>
+
+            <label>
+              <input
+                checked={form.recording_enabled}
+                type="checkbox"
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    recording_enabled: event.target.checked,
+                  })
+                }
+              />
+              Recording
+            </label>
+
+            <label>
+              <input
+                checked={form.ai_supported}
+                type="checkbox"
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    ai_supported: event.target.checked,
+                  })
+                }
+              />
+              AI processing
+            </label>
+          </div>
+
+          <div className="camera-form-actions">
+            <button disabled={savingCamera} type="submit">
+              {savingCamera ? 'Saving...' : 'Save Camera'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="camera-summary">
+        <div>
+          <span>Total Cameras</span>
+          <strong>{cameras.length}</strong>
+        </div>
+
+        <div>
+          <span>Online</span>
+          <strong className="summary-online">
+            {online}
+          </strong>
+        </div>
+
+        <div>
+          <span>Running</span>
+          <strong>{running}</strong>
+        </div>
+
+        <div>
+          <span>Recording</span>
+          <strong className="summary-recording">
+            {recording}
+          </strong>
+        </div>
+      </div>
+
+      {message && (
+        <div className="camera-alert success">
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="camera-alert error">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="camera-empty">
+          Loading cameras...
+        </div>
+      ) : cameras.length === 0 ? (
+        <div className="camera-empty">
+          <div className="camera-empty-icon">
+            CAM
+          </div>
+
+          <h3>No cameras found</h3>
+
+          <p>
+            Add a camera to start live monitoring.
+          </p>
+        </div>
+      ) : (
+        <div className="camera-grid-new">
+          {cameras.map((camera) => {
+            const isOnline =
+              camera.status === 'ONLINE'
+
+            const isRunning =
+              camera.running === true
+
+            const busy = actionId === camera.id
+
+            const streamFailed =
+              streamErrors[camera.id] === true
+
+            const liveToken =
+              liveTokens[camera.id]
+
+            const showLive =
+              isOnline &&
+              isRunning &&
+              Boolean(liveToken) &&
+              !streamFailed
+
+            const cameraRotation =
+              rotation[camera.id] || 0
+
+            const view =
+              digitalView[camera.id] ||
+              DEFAULT_DIGITAL_VIEW
+
+            const cameraPTZ =
+              ptzStatus[camera.id]
+
+            const hasPhysicalPTZ =
+              cameraPTZ?.ptz_supported === true
+
+            const cameraPTZBusy =
+              ptzBusy[camera.id] === true
+
+            return (
+              <article
+                className="camera-card-new"
+                key={camera.id}
+              >
+                <div
+                  ref={(element) => {
+                    previewRefs.current[camera.id] =
+                      element
+                  }}
+                  data-camera-id={camera.id}
+                  className={`camera-preview-new ${
+                    fullscreenId === camera.id
+                      ? 'is-fullscreen'
+                      : ''
+                  }`}
+                  onWheel={(event) =>
+                    handlePreviewWheel(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerDown={(event) =>
+                    handlePreviewPointerDown(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerMove={(event) =>
+                    handlePreviewPointerMove(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerUp={(event) =>
+                    handlePreviewPointerUp(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onPointerCancel={(event) =>
+                    handlePreviewPointerUp(
+                      event,
+                      camera.id,
+                    )
+                  }
+                  onDoubleClick={(event) =>
+                    handlePreviewDoubleClick(
+                      event,
+                      camera.id,
+                    )
+                  }
+                >
+                  {showLive ? (
+                    <img
+                      key={`${camera.id}-${streamVersion[camera.id] || 0}`}
+                      src={getLiveUrl(
+                        camera.id,
+                        liveToken,
+                      )}
+                      alt={`${camera.name || 'Camera'} live stream`}
+                      className="camera-live-image"
+                      style={{
+                        transform:
+                          `translate(${view.panX}%, ${view.panY}%) ` +
+                          `rotate(${cameraRotation}deg) ` +
+                          `scale(${view.zoom})`,
+                        transformOrigin: 'center center',
+                      }}
+                      onError={() => {
+                        setStreamErrors((current) => ({
+                          ...current,
+                          [camera.id]: true,
+                        }))
+                      }}
+                    />
+                  ) : (
+                    <div className="camera-no-live">
+                      <div className="camera-preview-icon">
+                        CAM
+                      </div>
+
+                      <span>
+                        {streamFailed
+                          ? 'LIVE STREAM ERROR'
+                          : isOnline
+                            ? isRunning
+                              ? 'CONNECTING LIVE STREAM'
+                              : 'CAMERA ONLINE'
+                            : 'NO LIVE STREAM'}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="camera-view-toolbar">
+                    <button
+                      type="button"
+                      title="Rotate left"
+                      onClick={() =>
+                        handleRotate(
+                          camera.id,
+                          -1,
+                        )
+                      }
+                    >
+                      LEFT
+                    </button>
+
+                    <span>
+                      {cameraRotation} deg
+                    </span>
+
+                    <button
+                      type="button"
+                      title="Rotate right"
+                      onClick={() =>
+                        handleRotate(
+                          camera.id,
+                          1,
+                        )
+                      }
+                    >
+                      RIGHT
+                    </button>
+
+                    <button
+                      type="button"
+                      title="Reconnect live stream"
+                      onClick={() =>
+                        handleReconnect(
+                          camera.id,
+                        )
+                      }
+                    >
+                      RETRY
+                    </button>
+
+                    <button
+                      type="button"
+                      title={
+                        fullscreenId === camera.id
+                          ? 'Exit fullscreen'
+                          : 'Fullscreen'
+                      }
+                      onClick={() =>
+                        handleFullscreen(
+                          camera.id,
+                        )
+                      }
+                    >
+                      {fullscreenId === camera.id
+                        ? 'FULL'
+                        : 'FULL'}
+                    </button>
+                  </div>
+
+                  <div className="camera-digital-controls">
+                    <div className="camera-control-group">
+                      <strong>DIGITAL VIEW</strong>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          moveDigital(
+                            camera.id,
+                            0,
+                            -6,
+                          )
+                        }
+                      >
+                        UP
+                      </button>
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            moveDigital(
+                              camera.id,
+                              -6,
+                              0,
+                            )
+                          }
+                        >
+                          LEFT
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            resetDigitalView(
+                              camera.id,
+                            )
+                          }
+                        >
+                          RESET
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            moveDigital(
+                              camera.id,
+                              6,
+                              0,
+                            )
+                          }
+                        >
+                          RIGHT
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          moveDigital(
+                            camera.id,
+                            0,
+                            6,
+                          )
+                        }
+                      >
+                        DOWN
+                      </button>
+
+                      <div className="camera-zoom-row">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            zoomOut(camera.id)
+                          }
+                        >
+                          ZOOM -
+                        </button>
+
+                        <span>
+                          {Math.round(
+                            view.zoom * 100,
+                          )}%
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            zoomIn(camera.id)
+                          }
+                        >
+                          ZOOM +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`camera-control-group camera-ptz-group ${
+                        hasPhysicalPTZ
+                          ? 'ptz-supported'
+                          : 'ptz-unavailable'
+                      }`}
+                    >
+                      <strong>
+                        {hasPhysicalPTZ
+                          ? 'PHYSICAL PTZ'
+                          : 'PTZ'}
+                      </strong>
+
+                      {hasPhysicalPTZ ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={
+                              cameraPTZBusy
+                            }
+                            onClick={() =>
+                              void ptzMove(
+                                camera.id,
+                                0,
+                                0.7,
+                                0,
+                              )
+                            }
+                          >
+                            UP
+                          </button>
+
+                          <div>
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  -0.7,
+                                  0,
+                                  0,
+                                )
+                              }
+                            >
+                              LEFT
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void ptzStop(
+                                  camera.id,
+                                )
+                              }
+                            >
+                              STOP
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  0.7,
+                                  0,
+                                  0,
+                                )
+                              }
+                            >
+                              RIGHT
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={
+                              cameraPTZBusy
+                            }
+                            onClick={() =>
+                              void ptzMove(
+                                camera.id,
+                                0,
+                                -0.7,
+                                0,
+                              )
+                            }
+                          >
+                            DOWN
+                          </button>
+
+                          <div className="camera-zoom-row">
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  0,
+                                  0,
+                                  -0.7,
+                                )
+                              }
+                            >
+                              ZOOM -
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void ptzHome(
+                                  camera.id,
+                                )
+                              }
+                            >
+                              HOME
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={
+                                cameraPTZBusy
+                              }
+                              onClick={() =>
+                                void ptzMove(
+                                  camera.id,
+                                  0,
+                                  0,
+                                  0.7,
+                                )
+                              }
+                            >
+                              ZOOM +
+                            </button>
+                          </div>
+
+                          {(
+                            ptzPresets[
+                              camera.id
+                            ] || []
+                          ).length > 0 && (
+                            <select
+                              defaultValue=""
+                              onChange={(
+                                event,
+                              ) => {
+                                const value =
+                                  event.target
+                                    .value
+
+                                if (value) {
+                                  void ptzPreset(
+                                    camera.id,
+                                    value,
+                                  )
+
+                                  event.target.value =
+                                    ''
+                                }
+                              }}
+                            >
+                              <option value="">
+                                PRESET
+                              </option>
+
+                              {(
+                                ptzPresets[
+                                  camera.id
+                                ] || []
+                              ).map(
+                                (preset) => (
+                                  <option
+                                    key={
+                                      preset.token
+                                    }
+                                    value={
+                                      preset.token
+                                    }
+                                  >
+                                    {preset.name ||
+                                      preset.token}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+                          )}
+                        </>
+                      ) : (
+                        <span className="camera-ptz-unavailable">
+                          Physical PTZ not supported
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    className={`camera-status ${
+                      isOnline
+                        ? 'online'
+                        : 'offline'
+                    }`}
+                  >
+                    <span />
+                    {camera.status || 'UNKNOWN'}
+                  </div>
+                </div>
+
+                <div className="camera-card-body">
+                  <div className="camera-name-row">
+                    <div>
+                      <h3>
+                        {camera.name ||
+                          `Camera ${camera.id}`}
+                      </h3>
+
+                      <small>
+                        Camera ID: {camera.id}
+                      </small>
+                    </div>
+
+                    <span
+                      className={`running-state ${
+                        isRunning
+                          ? 'running'
+                          : 'stopped'
+                      }`}
+                    >
+                      {isRunning
+                        ? 'RUNNING'
+                        : 'STOPPED'}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`recording-state ${
+                      camera.recording
+                        ? 'recording'
+                        : 'idle'
+                    }`}
+                  >
+                    <span />
+                    {camera.recording
+                      ? `Recording${camera.recording_id ? ` #${camera.recording_id}` : ''}`
+                      : isRunning
+                        ? 'Waiting for storage/frame'
+                        : 'Recording idle'}
+                  </div>
+
+                  <div className="camera-meta">
+                    <div>
+                      <span>Enabled</span>
+
+                      <strong>
+                        {camera.enabled
+                          ? 'Yes'
+                          : 'No'}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Last Seen</span>
+
+                      <strong>
+                        {camera.last_seen
+                          ? new Date(
+                              camera.last_seen,
+                            ).toLocaleString()
+                          : 'Never'}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Recording Since</span>
+
+                      <strong>
+                        {camera.recording_started_at
+                          ? new Date(
+                              camera.recording_started_at,
+                            ).toLocaleString()
+                          : 'Not active'}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Stream</span>
+
+                      <strong>
+                        {camera.width && camera.height
+                          ? `${camera.width}x${camera.height}`
+                          : 'Unknown'}
+                        {camera.fps
+                          ? ` @ ${Number(camera.fps).toFixed(1)} FPS`
+                          : ''}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>AI</span>
+
+                      <strong>
+                        {camera.ai_supported
+                          ? 'Enabled'
+                          : 'Disabled'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {testResults[camera.id] && (
+                    <div className="camera-test-result">
+                      {testResults[camera.id]}
+                    </div>
+                  )}
+
+                  <div className="camera-controls">
+                    <button
+                      className="camera-start"
+                      disabled={
+                        isRunning || busy
+                      }
+                      onClick={() =>
+                        handleStart(camera.id)
+                      }
+                    >
+                      {busy
+                        ? 'Working...'
+                        : 'Start'}
+                    </button>
+
+                    <button
+                      className="camera-stop"
+                      disabled={
+                        !isRunning || busy
+                      }
+                      onClick={() =>
+                        handleStop(camera.id)
+                      }
+                    >
+                      Stop
+                    </button>
+
+                    <button
+                      className="camera-status-button"
+                      onClick={() =>
+                        refreshStatus([camera])
+                      }
+                    >
+                      Status
+                    </button>
+
+                    <button
+                      className="camera-status-button"
+                      disabled={testingId === camera.id}
+                      onClick={() =>
+                        void handleTestConnection(camera)
+                      }
+                    >
+                      {testingId === camera.id
+                        ? 'Testing...'
+                        : 'Test'}
+                    </button>
+
+                    <button
+                      className="camera-status-button"
+                      onClick={() => openEditForm(camera)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="camera-delete"
+                      disabled={busy}
+                      onClick={() =>
+                        void handleDeleteCamera(camera)
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default Cameras
+
+
+====================================================================================================
+===== src/pages/Recordings.tsx =====
+====================================================================================================
+﻿import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
+
+import {
+  deleteRecording,
+  getRecordingDownloadUrl,
+  getRecordingAIDetections,
+  getRecordingVideoBlob,
+  getRecordings,
+  getStorageLocations,
+  protectRecording,
+  unprotectRecording,
+  type Recording,
+  type StorageLocation,
+  type RecordingDetection,
+} from '../services/recordingService'
+
+import './Recordings.css'
+
+function formatBytes(bytes: number) {
+  if (!bytes) return '0 B'
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+
+  let value = bytes
+  let unit = 0
+
+  while (
+    value >= 1024 &&
+    unit < units.length - 1
+  ) {
+    value /= 1024
+    unit += 1
+  }
+
+  return `${value.toFixed(unit === 0 ? 0 : 2)} ${units[unit]}`
+}
+
+function formatDuration(seconds: number | null) {
+  if (
+    seconds === null ||
+    seconds === undefined
+  ) {
+    return '--'
+  }
+
+  const hours = Math.floor(
+    seconds / 3600,
+  )
+
+  const minutes = Math.floor(
+    (seconds % 3600) / 60,
+  )
+
+  const secs = Math.floor(
+    seconds % 60,
+  )
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(
+      2,
+      '0',
+    )}:${String(secs).padStart(2, '0')}`
+  }
+
+  return `${String(minutes).padStart(
+    2,
+    '0',
+  )}:${String(secs).padStart(2, '0')}`
+}
+
+function Recordings() {
+  const token =
+    localStorage.getItem('aks_token') || ''
+
+  const [recordings, setRecordings] =
+    useState<Recording[]>([])
+
+  const [storage, setStorage] =
+    useState<StorageLocation[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [busyId, setBusyId] =
+    useState<number | null>(null)
+
+  const [message, setMessage] =
+    useState('')
+
+  const [error, setError] =
+    useState('')
+
+  const [playerRecording, setPlayerRecording] =
+    useState<Recording | null>(null)
+
+  const [videoUrl, setVideoUrl] =
+    useState('')
+
+  const [detections, setDetections] =
+    useState<RecordingDetection[]>([])
+
+  const [aiOverlay, setAiOverlay] =
+    useState(true)
+
+  const [
+    currentPersons,
+    setCurrentPersons,
+  ] = useState(0)
+
+  const [
+    currentVehicles,
+    setCurrentVehicles,
+  ] = useState(0)
+
+  const videoRef =
+    useRef<HTMLVideoElement | null>(null)
+
+  const canvasRef =
+    useRef<HTMLCanvasElement | null>(null)
+
+  const animationRef =
+    useRef<number | null>(null)
+
+  const load = useCallback(
+    async () => {
+      if (!token) return
+
+      setLoading(true)
+      setError('')
+
+      try {
+        const [
+          recordingData,
+          storageData,
+        ] = await Promise.all([
+          getRecordings(token),
+          getStorageLocations(token),
+        ])
+
+        setRecordings(recordingData)
+        setStorage(storageData)
+      } catch (err: any) {
+        console.error(
+          'RECORDINGS LOAD ERROR:',
+          err,
+        )
+
+        if (
+          err?.response?.status === 401
+        ) {
+          localStorage.removeItem(
+            'aks_token',
+          )
+
+          window.location.reload()
+          return
+        }
+
+        setError(
+          err?.response?.data?.detail ||
+            'Unable to load recordings.',
+        )
+      } finally {
+        setLoading(false)
+      }
+    },
+    [token],
+  )
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    return () => {
+      if (videoUrl) {
+        URL.revokeObjectURL(
+          videoUrl,
+        )
+      }
+
+      if (
+        animationRef.current !== null
+      ) {
+        cancelAnimationFrame(
+          animationRef.current,
+        )
+      }
+    }
+  }, [videoUrl])
+
+  const drawOverlay =
+    useCallback(() => {
+      const video = videoRef.current
+      const canvas = canvasRef.current
+
+      if (!video || !canvas) return
+
+      const context =
+        canvas.getContext('2d')
+
+      if (!context) return
+
+      const width =
+        video.videoWidth
+
+      const height =
+        video.videoHeight
+
+      if (!width || !height) {
+        return
+      }
+
+      canvas.width = width
+      canvas.height = height
+
+      context.clearRect(
+        0,
+        0,
+        width,
+        height,
+      )
+
+      if (!aiOverlay) {
+        setCurrentPersons(0)
+        setCurrentVehicles(0)
+        return
+      }
+
+      if (!playerRecording) {
+        return
+      }
+
+      const targetTime =
+        new Date(
+          playerRecording.started_at,
+        ).getTime() +
+        video.currentTime * 1000
+
+      const windowMs = 800
+
+      const nearby =
+        detections.filter(
+          (detection) => {
+            const timestamp =
+              new Date(
+                detection.timestamp,
+              ).getTime()
+
+            return (
+              Math.abs(
+                timestamp -
+                  targetTime,
+              ) <= windowMs
+            )
+          },
+        )
+
+      const selected =
+        new Map<string, RecordingDetection>()
+
+      for (
+        const detection of nearby
+      ) {
+        const key =
+          detection.tracking_id
+            ? `track:${detection.tracking_id}`
+            : `id:${detection.id}`
+
+        const existing =
+          selected.get(key)
+
+        if (!existing) {
+          selected.set(
+            key,
+            detection,
+          )
+          continue
+        }
+
+        const currentDistance =
+          Math.abs(
+            new Date(
+              existing.timestamp,
+            ).getTime() -
+              targetTime,
+          )
+
+        const nextDistance =
+          Math.abs(
+            new Date(
+              detection.timestamp,
+            ).getTime() -
+              targetTime,
+          )
+
+        if (
+          nextDistance <
+          currentDistance
+        ) {
+          selected.set(
+            key,
+            detection,
+          )
+        }
+      }
+
+      const visible =
+        Array.from(
+          selected.values(),
+        )
+
+      let persons = 0
+      let vehicles = 0
+
+      for (
+        const detection of visible
+      ) {
+        if (
+          detection.object_type ===
+          'PERSON'
+        ) {
+          persons += 1
+        }
+
+        if (
+          detection.object_type ===
+          'VEHICLE'
+        ) {
+          vehicles += 1
+        }
+
+        const x =
+          detection.bbox_x *
+          width
+
+        const y =
+          detection.bbox_y *
+          height
+
+        const boxWidth =
+          detection.bbox_width *
+          width
+
+        const boxHeight =
+          detection.bbox_height *
+          height
+
+        const isPerson =
+          detection.object_type ===
+          'PERSON'
+
+        const isVehicle =
+          detection.object_type ===
+          'VEHICLE'
+
+        const stroke =
+          isPerson
+            ? '#ff3030'
+            : isVehicle
+              ? '#38a8ff'
+              : '#ffd34d'
+
+        context.strokeStyle = stroke
+        context.lineWidth = 3
+
+        context.strokeRect(
+          x,
+          y,
+          boxWidth,
+          boxHeight,
+        )
+
+        const confidence =
+          detection.confidence ===
+          null
+            ? ''
+            : ` ${(
+                detection.confidence *
+                100
+              ).toFixed(0)}%`
+
+        const tracking =
+          detection.tracking_id
+            ? ` #${detection.tracking_id}`
+            : ''
+
+        const label =
+          `${detection.label || detection.object_type}${confidence}${tracking}`
+
+        context.font =
+          'bold 16px Arial'
+
+        const textWidth =
+          context.measureText(
+            label,
+          ).width
+
+        const labelHeight = 24
+
+        context.fillStyle =
+          stroke
+
+        context.fillRect(
+          x,
+          Math.max(
+            0,
+            y - labelHeight,
+          ),
+          textWidth + 12,
+          labelHeight,
+        )
+
+        context.fillStyle =
+          '#ffffff'
+
+        context.fillText(
+          label,
+          x + 6,
+          Math.max(
+            17,
+            y - 7,
+          ),
+        )
+      }
+
+      setCurrentPersons(persons)
+      setCurrentVehicles(
+        vehicles,
+      )
+    }, [
+      aiOverlay,
+      detections,
+      playerRecording,
+    ])
+
+  const animationLoop =
+    useCallback(() => {
+      drawOverlay()
+
+      animationRef.current =
+        requestAnimationFrame(
+          animationLoop,
+        )
+    }, [drawOverlay])
+
+  const handlePlay = () => {
+    if (
+      animationRef.current ===
+      null
+    ) {
+      animationRef.current =
+        requestAnimationFrame(
+          animationLoop,
+        )
+    }
+  }
+
+  const handlePause = () => {
+    if (
+      animationRef.current !==
+      null
+    ) {
+      cancelAnimationFrame(
+        animationRef.current,
+      )
+
+      animationRef.current = null
+    }
+
+    drawOverlay()
+  }
+
+  const closePlayer = () => {
+    if (
+      animationRef.current !==
+      null
+    ) {
+      cancelAnimationFrame(
+        animationRef.current,
+      )
+
+      animationRef.current = null
+    }
+
+    if (videoUrl) {
+      URL.revokeObjectURL(videoUrl)
+    }
+
+    setVideoUrl('')
+    setDetections([])
+    setPlayerRecording(null)
+    setCurrentPersons(0)
+    setCurrentVehicles(0)
+  }
+
+  const openPlayer =
+    async (recording: Recording) => {
+      setError('')
+      setMessage('')
+
+      try {
+        closePlayer()
+
+        const [
+          blob,
+          detectionData,
+        ] = await Promise.all([
+          getRecordingVideoBlob(
+            token,
+            recording.id,
+          ),
+          getRecordingAIDetections(
+            token,
+            recording.id,
+          ),
+        ])
+
+        const url =
+          URL.createObjectURL(blob)
+
+        setPlayerRecording(
+          recording,
+        )
+
+        setVideoUrl(url)
+
+        setDetections(
+          detectionData.detections,
+        )
+      } catch (err: any) {
+        console.error(
+          'RECORDING PLAYER ERROR:',
+          err,
+        )
+
+        setError(
+          err?.response?.data?.detail ||
+            'Unable to open recording.',
+        )
+      }
+    }
+
+  const handleProtect =
+    async (recording: Recording) => {
+      setBusyId(recording.id)
+      setError('')
+      setMessage('')
+
+      try {
+        const updated =
+          await protectRecording(
+            token,
+            recording.id,
+            'Protected from Recording Manager',
+          )
+
+        setRecordings((current) =>
+          current.map((item) =>
+            item.id === updated.id
+              ? updated
+              : item,
+          ),
+        )
+
+        setMessage(
+          `Recording ${recording.id} protected.`,
+        )
+      } catch (err: any) {
+        setError(
+          err?.response?.data?.detail ||
+            'Unable to protect recording.',
+        )
+      } finally {
+        setBusyId(null)
+      }
+    }
+
+  const handleUnprotect =
+    async (recording: Recording) => {
+      setBusyId(recording.id)
+      setError('')
+      setMessage('')
+
+      try {
+        const updated =
+          await unprotectRecording(
+            token,
+            recording.id,
+          )
+
+        setRecordings((current) =>
+          current.map((item) =>
+            item.id === updated.id
+              ? updated
+              : item,
+          ),
+        )
+
+        setMessage(
+          `Recording ${recording.id} unprotected.`,
+        )
+      } catch (err: any) {
+        setError(
+          err?.response?.data?.detail ||
+            'Unable to unprotect recording.',
+        )
+      } finally {
+        setBusyId(null)
+      }
+    }
+
+  const handleDelete =
+    async (recording: Recording) => {
+      if (recording.protected) {
+        setError(
+          'Unprotect the recording before deleting it.',
+        )
+        return
+      }
+
+      if (
+        !window.confirm(
+          `Delete "${recording.file_name}" permanently?`,
+        )
+      ) {
+        return
+      }
+
+      setBusyId(recording.id)
+      setError('')
+      setMessage('')
+
+      try {
+        await deleteRecording(
+          token,
+          recording.id,
+        )
+
+        setRecordings((current) =>
+          current.filter(
+            (item) =>
+              item.id !== recording.id,
+          ),
+        )
+
+        if (
+          playerRecording?.id ===
+          recording.id
+        ) {
+          closePlayer()
+        }
+
+        setMessage(
+          `Recording ${recording.id} deleted.`,
+        )
+
+        void load()
+      } catch (err: any) {
+        setError(
+          err?.response?.data?.detail ||
+            'Unable to delete recording.',
+        )
+      } finally {
+        setBusyId(null)
+      }
+    }
+
+  const completed =
+    recordings.filter(
+      (item) =>
+        item.status ===
+        'COMPLETED',
+    ).length
+
+  const protectedCount =
+    recordings.filter(
+      (item) => item.protected,
+    ).length
+
+  const totalBytes =
+    recordings.reduce(
+      (sum, item) =>
+        sum +
+        Number(
+          item.file_size_bytes || 0,
+        ),
+      0,
+    )
+
+  return (
+    <div className="recordings-page">
+      <div className="recordings-header">
+        <div>
+          <h2>Recordings</h2>
+
+          <p>
+            Recorded camera segments,
+            storage management and AI
+            playback.
+          </p>
+        </div>
+
+        <button
+          className="recordings-refresh"
+          onClick={() =>
+            void load()
+          }
+          disabled={loading}
+        >
+          Refresh
+        </button>
+      </div>
+
+      <div className="recording-summary">
+        <div>
+          <span>Total</span>
+          <strong>
+            {recordings.length}
+          </strong>
+        </div>
+
+        <div>
+          <span>Completed</span>
+          <strong>
+            {completed}
+          </strong>
+        </div>
+
+        <div>
+          <span>Protected</span>
+          <strong>
+            {protectedCount}
+          </strong>
+        </div>
+
+        <div>
+          <span>Files</span>
+          <strong>
+            {formatBytes(totalBytes)}
+          </strong>
+        </div>
+      </div>
+
+      {storage.map((item) => (
+        <div
+          className="storage-card"
+          key={item.id}
+        >
+          <div className="storage-title-row">
+            <strong>
+              {item.name}
+            </strong>
+
+            <span>
+              {formatBytes(
+                Number(
+                  item.current_size_bytes,
+                ),
+              )}{' '}
+              / {item.max_size_gb} GB
+            </span>
+          </div>
+
+          <div className="storage-progress">
+            <span
+              style={{
+                width: `${Math.min(
+                  100,
+                  Number(
+                    item.usage_percent,
+                  ),
+                )}%`,
+              }}
+            />
+          </div>
+
+          <small>
+            {Number(
+              item.usage_percent,
+            ).toFixed(2)}%
+            {' '}used • Rolling storage{' '}
+            {item.rolling_enabled
+              ? 'ON'
+              : 'OFF'}
+          </small>
+        </div>
+      ))}
+
+      {message && (
+        <div className="recording-alert success">
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="recording-alert error">
+          {error}
+        </div>
+      )}
+
+      {playerRecording && (
+        <section className="recording-player-card">
+          <div className="recording-player-header">
+            <div>
+              <h3>
+                {playerRecording.file_name}
+              </h3>
+
+              <p>
+                {playerRecording.camera_name}
+              </p>
+            </div>
+
+            <div className="recording-player-actions">
+              <span className="ai-count-pill">
+                PERSONS:{' '}
+                {currentPersons}
+              </span>
+
+              <span className="ai-count-pill">
+                VEHICLES:{' '}
+                {currentVehicles}
+              </span>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setAiOverlay(
+                    (value) =>
+                      !value,
+                  )
+                }
+              >
+                AI OVERLAY{' '}
+                {aiOverlay
+                  ? 'ON'
+                  : 'OFF'}
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  closePlayer
+                }
+              >
+                Close
+              </button>
+            </div>
+          </div>
+
+          <div className="recording-video-stage">
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              controls
+              playsInline
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onEnded={handlePause}
+              onLoadedMetadata={() =>
+                drawOverlay()
+              }
+              onTimeUpdate={() =>
+                drawOverlay()
+              }
+              onSeeked={() =>
+                drawOverlay()
+              }
+            />
+
+            <canvas
+              ref={canvasRef}
+              className="recording-ai-canvas"
+            />
+
+            <div className="recording-ai-hud">
+              PERSONS:{' '}
+              {currentPersons}
+              {'  '}
+              VEHICLES:{' '}
+              {currentVehicles}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {loading ? (
+        <div className="recording-empty">
+          Loading recordings...
+        </div>
+      ) : recordings.length ===
+        0 ? (
+        <div className="recording-empty">
+          No recordings available.
+        </div>
+      ) : (
+        <div className="recordings-table-wrap">
+          <table className="recordings-table">
+            <thead>
+              <tr>
+                <th>Camera</th>
+                <th>File</th>
+                <th>Started</th>
+                <th>Duration</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th>Protected</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {recordings.map(
+                (recording) => {
+                  const busy =
+                    busyId ===
+                    recording.id
+
+                  return (
+                    <tr
+                      key={
+                        recording.id
+                      }
+                    >
+                      <td>
+                        <strong>
+                          {
+                            recording.camera_name
+                          }
+                        </strong>
+
+                        <small>
+                          ID{' '}
+                          {
+                            recording.camera
+                          }
+                        </small>
+                      </td>
+
+                      <td>
+                        <strong>
+                          {
+                            recording.file_name
+                          }
+                        </strong>
+
+                        {!recording.file_exists && (
+                          <small className="missing-file">
+                            File missing
+                          </small>
+                        )}
+                      </td>
+
+                      <td>
+                        {new Date(
+                          recording.started_at,
+                        ).toLocaleString()}
+                      </td>
+
+                      <td>
+                        {formatDuration(
+                          recording.duration_seconds,
+                        )}
+                      </td>
+
+                      <td>
+                        {formatBytes(
+                          Number(
+                            recording.file_size_bytes,
+                          ),
+                        )}
+                      </td>
+
+                      <td>
+                        <span className="recording-status">
+                          {
+                            recording.status
+                          }
+                        </span>
+                      </td>
+
+                      <td>
+                        {recording.protected
+                          ? 'YES'
+                          : 'NO'}
+                      </td>
+
+                      <td>
+                        <div className="recording-actions">
+                          {recording.file_exists && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void openPlayer(
+                                    recording,
+                                  )
+                                }
+                              >
+                                AI Play
+                              </button>
+
+                              <a
+                                href={getRecordingDownloadUrl(
+                                  recording.id,
+                                )}
+                                className="recording-action-link"
+                              >
+                                Download
+                              </a>
+                            </>
+                          )}
+
+                          {recording.protected ? (
+                            <button
+                              disabled={busy}
+                              onClick={() =>
+                                void handleUnprotect(
+                                  recording,
+                                )
+                              }
+                            >
+                              Unprotect
+                            </button>
+                          ) : (
+                            <button
+                              disabled={busy}
+                              onClick={() =>
+                                void handleProtect(
+                                  recording,
+                                )
+                              }
+                            >
+                              Protect
+                            </button>
+                          )}
+
+                          <button
+                            className="danger"
+                            disabled={
+                              busy ||
+                              recording.protected
+                            }
+                            onClick={() =>
+                              void handleDelete(
+                                recording,
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                },
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default Recordings
+
+
+====================================================================================================
+===== src/components/layout/DashboardLayout.tsx =====
+====================================================================================================
+FILE NOT FOUND
+
+
+====================================================================================================
+===== src/components/layout/Topbar.tsx =====
+====================================================================================================
+FILE NOT FOUND
+
+
+====================================================================================================
+===== src/App.tsx =====
+====================================================================================================
+﻿import { useState, type FormEvent } from 'react'
+import axios from 'axios'
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from 'react-router-dom'
+
+import './App.css'
+
+import DashboardLayout from './layouts/DashboardLayout'
+
+import Overview from './pages/Overview'
+import Cameras from './pages/Cameras'
+import Tracking from './pages/Tracking'
+import Detections from './pages/Detections'
+import Events from './pages/Events'
+import Alerts from './pages/Alerts'
+import Persons from './pages/Persons'
+import Vehicles from './pages/Vehicles'
+import Settings from './pages/Settings'
+import Recordings from './pages/Recordings'
+
+const API = '/api'
+
+function Login({
+  onLogin,
+}: {
+  onLogin: (token: string) => void
+}) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const login = async (e: FormEvent) => {
+    e.preventDefault()
+
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await axios.post(`${API}/auth/token/`, {
+        username,
+        password,
+      })
+
+      const access = response.data.access
+
+      if (!access) {
+        throw new Error('No access token received')
+      }
+
+      localStorage.setItem('aks_token', access)
+      onLogin(access)
+    } catch (err: any) {
+      console.error('LOGIN ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          'Login failed. Check username and password.',
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="brand-mark">AX</div>
+
+        <h1>AKS VisionX</h1>
+
+        <p className="subtitle">
+          Intelligent Camera Monitoring & AI Surveillance
+        </p>
+
+        <form onSubmit={login}>
+          <label>Username</label>
+
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter username"
+            autoComplete="username"
+            required
+          />
+
+          <label>Password</label>
+
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            placeholder="Enter password"
+            autoComplete="current-password"
+            required
+          />
+
+          {error && (
+            <div className="alert error">
+              {error}
+            </div>
+          )}
+
+          <button
+            className="primary-button"
+            disabled={loading}
+            type="submit"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="login-footer">
+          AKS VisionX • Secure Monitoring Platform
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function App() {
+  const [token, setToken] = useState(
+    localStorage.getItem('aks_token') || '',
+  )
+
+  const logout = () => {
+    localStorage.removeItem('aks_token')
+    setToken('')
+  }
+
+  if (!token) {
+    return <Login onLogin={setToken} />
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          element={
+            <DashboardLayout onLogout={logout} />
+          }
+        >
+          <Route path="/" element={<Overview token={token} />} />
+          <Route path="/cameras" element={<Cameras />} />
+          <Route path="/recordings" element={<Recordings />} />
+          <Route path="/tracking" element={<Tracking />} />
+          <Route path="/detections" element={<Detections />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/persons" element={<Persons />} />
+          <Route path="/vehicles" element={<Vehicles />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default App
+
+
+
+
+
+
+====================================================================================================
+===== src/App.css =====
+====================================================================================================
+﻿:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e8edf5;
+  background: #070b12;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 80% 0%, rgba(20, 115, 255, 0.10), transparent 32rem),
+    #070b12;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: min(430px, 100%);
+  padding: 38px;
+  border: 1px solid #1d2a3b;
+  border-radius: 20px;
+  background: rgba(12, 18, 28, 0.96);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.brand-mark {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1677ff, #00c2ff);
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  box-shadow: 0 10px 30px rgba(0, 150, 255, 0.25);
+}
+
+.brand-mark.small {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.login-card h1 {
+  margin: 24px 0 8px;
+  color: #fff;
+  font-size: 31px;
+  letter-spacing: -1px;
+}
+
+.subtitle {
+  margin: 0 0 30px;
+  color: #8391a5;
+  line-height: 1.55;
+}
+
+.login-card label {
+  display: block;
+  margin: 17px 0 8px;
+  color: #aeb9c8;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #263448;
+  border-radius: 10px;
+  outline: none;
+  background: #0a111c;
+  color: white;
+}
+
+.login-card input:focus {
+  border-color: #1685ff;
+  box-shadow: 0 0 0 3px rgba(22, 133, 255, 0.12);
+}
+
+.primary-button {
+  width: 100%;
+  margin-top: 25px;
+  padding: 13px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1478ff, #00a9ff);
+  color: white;
+  font-weight: 750;
+}
+
+.login-footer {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #1b2737;
+  color: #657286;
+  font-size: 12px;
+  text-align: center;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  border-bottom: 1px solid #182333;
+  background: rgba(7, 11, 18, 0.92);
+  backdrop-filter: blur(15px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-title {
+  color: #fff;
+  font-weight: 750;
+  font-size: 15px;
+}
+
+.brand-subtitle {
+  color: #68778c;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #8e9aac;
+  font-size: 12px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  border-radius: 50%;
+  background: #68778c;
+}
+
+.status-dot.online {
+  background: #20d486;
+  box-shadow: 0 0 10px rgba(32, 212, 134, 0.7);
+}
+
+.logout-button,
+.refresh-button,
+.status-button {
+  border: 1px solid #263448;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #b9c5d4;
+  background: #0d1521;
+}
+
+.logout-button:hover,
+.refresh-button:hover,
+.status-button:hover {
+  border-color: #3d5470;
+  color: #fff;
+}
+
+.dashboard {
+  width: min(1450px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 38px 0 60px;
+  flex: 1;
+}
+
+.dashboard-heading,
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.dashboard-heading h1 {
+  margin: 0;
+  color: #f7faff;
+  font-size: 31px;
+  letter-spacing: -1px;
+}
+
+.dashboard-heading p,
+.section-header p {
+  margin: 7px 0 0;
+  color: #728095;
+  font-size: 13px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 28px 0 38px;
+}
+
+.stat-card {
+  padding: 21px;
+  border: 1px solid #1a2839;
+  border-radius: 13px;
+  background: #0c131e;
+}
+
+.stat-label {
+  color: #728095;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-value {
+  margin-top: 8px;
+  color: #f2f6fb;
+  font-size: 27px;
+  font-weight: 750;
+}
+
+.online-text {
+  color: #20d486;
+}
+
+.system-ok {
+  color: #4ea4ff;
+}
+
+.section-header {
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  margin: 0;
+  color: #eaf0f8;
+  font-size: 18px;
+}
+
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.camera-card {
+  overflow: hidden;
+  border: 1px solid #1b2a3c;
+  border-radius: 14px;
+  background: #0b121c;
+}
+
+.camera-preview {
+  height: 190px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(20, 31, 45, 0.9), rgba(6, 11, 18, 0.96)),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 20px,
+      rgba(74, 101, 130, 0.06) 21px
+    );
+}
+
+.camera-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #52657c;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+
+.camera-icon {
+  font-size: 34px;
+  opacity: 0.65;
+}
+
+.live-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: rgba(5, 10, 16, 0.8);
+  color: #aeb9c8;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.live-badge.live {
+  color: #20d486;
+}
+
+.live-badge.live .status-dot {
+  background: #20d486;
+}
+
+.live-badge.offline .status-dot {
+  background: #ef5260;
+}
+
+.camera-content {
+  padding: 18px;
+}
+
+.camera-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.camera-title-row h3 {
+  margin: 0;
+  color: #eef3fa;
+  font-size: 15px;
+}
+
+.camera-id {
+  display: block;
+  margin-top: 5px;
+  color: #617085;
+  font-size: 10px;
+}
+
+.running-badge {
+  height: fit-content;
+  padding: 5px 7px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.running-badge.running {
+  background: rgba(32, 212, 134, 0.10);
+  color: #20d486;
+}
+
+.running-badge.stopped {
+  background: rgba(239, 82, 96, 0.09);
+  color: #ef7a85;
+}
+
+.camera-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 13px 0;
+  border-top: 1px solid #182434;
+  border-bottom: 1px solid #182434;
+}
+
+.camera-details span {
+  display: block;
+  margin-bottom: 5px;
+  color: #607086;
+  font-size: 10px;
+}
+
+.camera-details strong {
+  display: block;
+  overflow: hidden;
+  color: #b6c1d0;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.camera-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 7px;
+}
+
+.camera-actions button {
+  padding: 9px 5px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.start-button {
+  border: 1px solid rgba(32, 212, 134, 0.3);
+  background: rgba(32, 212, 134, 0.08);
+  color: #20d486;
+}
+
+.stop-button {
+  border: 1px solid rgba(239, 82, 96, 0.3);
+  background: rgba(239, 82, 96, 0.08);
+  color: #ef7a85;
+}
+
+.status-button {
+  background: #111b29;
+}
+
+.alert {
+  margin: 18px 0;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.alert.success {
+  border: 1px solid rgba(32, 212, 134, 0.25);
+  background: rgba(32, 212, 134, 0.07);
+  color: #53dc9c;
+}
+
+.alert.error {
+  border: 1px solid rgba(239, 82, 96, 0.25);
+  background: rgba(239, 82, 96, 0.07);
+  color: #ff8791;
+}
+
+.empty-state {
+  padding: 70px 20px;
+  border: 1px dashed #263548;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.empty-icon {
+  color: #3f536b;
+  font-size: 35px;
+}
+
+.empty-state h3 {
+  color: #c4cfdd;
+  margin: 14px 0 6px;
+}
+
+.empty-state p {
+  color: #69788d;
+  font-size: 12px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 30px;
+  border-top: 1px solid #182333;
+  color: #536277;
+  font-size: 10px;
+}
+
+@media (max-width: 1050px) {
+  .camera-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .system-status {
+    display: none;
+  }
+
+  .dashboard {
+    width: min(100% - 28px, 1450px);
+    padding-top: 25px;
+  }
+
+  .camera-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-heading h1 {
+    font-size: 24px;
+  }
+
+  .footer {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 450px) {
+  .login-card {
+    padding: 26px;
+  }
+
+  .topbar {
+    height: 64px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer span:last-child {
+    display: none;
+  }
+}
+ 
+/* =========================================================
+   AKS VISIONX DASHBOARD SHELL
+   ========================================================= */
+
+.dashboard-layout {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 85% 0%,
+      rgba(20, 115, 255, 0.08),
+      transparent 32rem
+    ),
+    #070b12;
+}
+
+.dashboard-main {
+  min-height: 100vh;
+  margin-left: 250px;
+}
+
+.dashboard-topbar {
+  height: 72px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 30px;
+
+  border-bottom: 1px solid #182333;
+
+  background: rgba(7, 11, 18, 0.94);
+  backdrop-filter: blur(15px);
+}
+
+.dashboard-topbar h1 {
+  margin: 0;
+  color: #f5f8fc;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.dashboard-topbar p {
+  margin: 4px 0 0;
+  color: #647287;
+  font-size: 11px;
+}
+
+.topbar-system-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  color: #8190a3;
+  font-size: 11px;
+}
+
+.dashboard-content {
+  min-height: calc(100vh - 72px);
+  padding: 30px;
+}
+
+.page-placeholder {
+  min-height: 420px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #1b2a3c;
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(13, 23, 36, 0.96),
+      rgba(8, 14, 23, 0.96)
+    );
+
+  text-align: center;
+}
+
+.page-placeholder-icon {
+  width: 60px;
+  height: 60px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 18px;
+
+  border: 1px solid #183b62;
+  border-radius: 16px;
+
+  background: rgba(22, 119, 255, 0.1);
+
+  color: #3d9aff;
+  font-size: 25px;
+}
+
+.page-placeholder h2 {
+  margin: 0;
+  color: #eef3fa;
+  font-size: 20px;
+}
+
+.page-placeholder p {
+  margin: 8px 0 0;
+  color: #65758a;
+  font-size: 12px;
+}
+
+@media (max-width: 800px) {
+  .dashboard-main {
+    margin-left: 72px;
+  }
+
+  .dashboard-topbar {
+    padding: 0 20px;
+  }
+
+  .dashboard-content {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 500px) {
+  .dashboard-topbar {
+    height: 64px;
+  }
+
+  .dashboard-topbar p {
+    display: none;
+  }
+
+  .dashboard-content {
+    padding: 15px;
+  }
+}
+
+
+/* =========================================================
+   AKS VisionX Professional VMS Design System
+   ========================================================= */
+
+:root {
+  --vms-bg: #050b14;
+  --vms-bg-soft: #08121f;
+  --vms-panel: rgba(9, 20, 33, 0.94);
+  --vms-panel-2: rgba(12, 27, 44, 0.96);
+  --vms-border: rgba(117, 164, 205, 0.18);
+  --vms-border-strong: rgba(70, 165, 255, 0.34);
+
+  --vms-text: #edf6ff;
+  --vms-text-soft: #a9bbcd;
+  --vms-text-muted: #71879b;
+
+  --vms-blue: #2296ff;
+  --vms-blue-soft: rgba(34, 150, 255, 0.13);
+
+  --vms-green: #22d17c;
+  --vms-green-soft: rgba(34, 209, 124, 0.12);
+
+  --vms-red: #ff4d5f;
+  --vms-red-soft: rgba(255, 77, 95, 0.12);
+
+  --vms-yellow: #ffbd2e;
+  --vms-yellow-soft: rgba(255, 189, 46, 0.12);
+
+  --vms-purple: #a86cff;
+  --vms-purple-soft: rgba(168, 108, 255, 0.12);
+
+  --vms-shadow:
+    0 18px 55px rgba(0, 0, 0, 0.32);
+
+  --vms-radius: 14px;
+}
+
+/* ---------- global ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(30, 110, 190, 0.10),
+      transparent 35%
+    ),
+    linear-gradient(
+      180deg,
+      #040a12 0%,
+      #07111d 100%
+    );
+  color: var(--vms-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* ---------- dashboard shell ---------- */
+
+.dashboard-layout {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.dashboard-main {
+  min-width: 0;
+}
+
+.dashboard-content {
+  width: min(100%, 1700px);
+  margin: 0 auto;
+  padding: 22px 24px 32px;
+}
+
+/* ---------- page headers ---------- */
+
+.camera-page-header,
+.dashboard-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.camera-page-header h2,
+.dashboard-page-header h2 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.camera-page-header p,
+.dashboard-page-header p {
+  margin: 7px 0 0;
+  color: var(--vms-text-soft);
+  font-size: 13px;
+}
+
+/* ---------- common professional panel ---------- */
+
+.camera-card-new,
+.storage-card,
+.camera-form,
+.recording-player-card,
+.recording-table-card {
+  border: 1px solid var(--vms-border);
+  border-radius: var(--vms-radius);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(12, 27, 43, 0.96),
+      rgba(7, 17, 29, 0.96)
+    );
+  box-shadow: var(--vms-shadow);
+}
+
+/* ---------- summary cards ---------- */
+
+.camera-summary {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.camera-summary > div {
+  position: relative;
+  overflow: hidden;
+  min-height: 92px;
+  padding: 16px 18px;
+  border: 1px solid var(--vms-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(13, 30, 48, 0.96),
+      rgba(7, 17, 29, 0.96)
+    );
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.22);
+}
+
+.camera-summary > div::after {
+  content: "";
+  position: absolute;
+  inset: auto -25px -35px auto;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      rgba(35, 150, 255, 0.16),
+      transparent 68%
+    );
+  pointer-events: none;
+}
+
+.camera-summary span {
+  display: block;
+  color: var(--vms-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.camera-summary strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* ---------- responsive summary ---------- */
+
+@media (max-width: 1100px) {
+  .camera-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .dashboard-content {
+    padding: 14px;
+  }
+
+  .camera-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* ---------- professional overview ---------- */
+
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.overview-kpi-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-kpi {
+  position: relative;
+  overflow: hidden;
+  min-height: 118px;
+  padding: 17px;
+  border: 1px solid var(--vms-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(13, 30, 48, 0.98),
+      rgba(7, 16, 27, 0.98)
+    );
+  box-shadow: var(--vms-shadow);
+}
+
+.overview-kpi::after {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  right: -38px;
+  bottom: -42px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      rgba(34, 150, 255, .16),
+      transparent 70%
+    );
+}
+
+.overview-kpi-label {
+  color: var(--vms-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.overview-kpi-value {
+  margin-top: 9px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+
+.overview-kpi-meta {
+  margin-top: 7px;
+  color: var(--vms-text-soft);
+  font-size: 12px;
+}
+
+.overview-kpi.online .overview-kpi-value {
+  color: var(--vms-green);
+}
+
+.overview-kpi.recording .overview-kpi-value {
+  color: var(--vms-red);
+}
+
+.overview-kpi.ai .overview-kpi-value {
+  color: var(--vms-purple);
+}
+
+.overview-main-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.7fr)
+    minmax(320px, .9fr);
+  gap: 14px;
+}
+
+.overview-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--vms-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 24, 40, .97),
+      rgba(7, 16, 27, .97)
+    );
+  box-shadow: var(--vms-shadow);
+}
+
+.overview-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 17px;
+  border-bottom: 1px solid var(--vms-border);
+}
+
+.overview-panel-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.overview-panel-header span {
+  color: var(--vms-text-muted);
+  font-size: 11px;
+}
+
+.overview-live-grid {
+  padding: 14px;
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-camera-tile {
+  overflow: hidden;
+  border: 1px solid var(--vms-border);
+  border-radius: 12px;
+  background: #02070d;
+}
+
+.overview-camera-preview {
+  aspect-ratio: 16 / 9;
+  background:
+    radial-gradient(
+      circle at center,
+      #16283b,
+      #03080e 75%
+    );
+}
+
+.overview-camera-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.overview-camera-name {
+  min-width: 0;
+}
+
+.overview-camera-name strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.overview-camera-name small {
+  color: var(--vms-text-muted);
+  font-size: 10px;
+}
+
+.vms-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.vms-status-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.vms-status-pill.online {
+  color: var(--vms-green);
+}
+
+.vms-status-pill.offline {
+  color: var(--vms-red);
+}
+
+.overview-side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overview-list {
+  padding: 6px 14px 14px;
+}
+
+.overview-list-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.overview-list-item:last-child {
+  border-bottom: 0;
+}
+
+.overview-list-item strong {
+  display: block;
+  font-size: 12px;
+}
+
+.overview-list-item span,
+.overview-list-item small {
+  color: var(--vms-text-muted);
+  font-size: 10px;
+}
+
+.overview-action-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-action-card {
+  padding: 15px;
+  border: 1px solid var(--vms-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(12, 27, 44, .96),
+      rgba(6, 14, 24, .96)
+    );
+  box-shadow: 0 10px 26px rgba(0,0,0,.20);
+}
+
+.overview-action-card strong {
+  display: block;
+  font-size: 12px;
+}
+
+.overview-action-card span {
+  display: block;
+  margin-top: 5px;
+  color: var(--vms-text-muted);
+  font-size: 10px;
+}
+
+.overview-action-card button {
+  width: 100%;
+  margin-top: 11px;
+  min-height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--vms-border-strong);
+  background: var(--vms-blue-soft);
+  color: #d9efff;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+@media (max-width: 1250px) {
+  .overview-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .overview-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 850px) {
+  .overview-live-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .overview-kpi-grid,
+  .overview-action-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- tables ---------- */
+
+.recordings-table,
+table {
+  color: var(--vms-text);
+}
+
+table thead th {
+  color: var(--vms-text-muted);
+  background: rgba(255,255,255,.025);
+  border-bottom: 1px solid var(--vms-border);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+table tbody tr:hover {
+  background: rgba(255,255,255,.025);
+}
+
+/* ---------- clean status / alerts ---------- */
+
+.camera-alert {
+  border-radius: 10px !important;
+  border: 1px solid var(--vms-border) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+.camera-alert.success {
+  background: var(--vms-green-soft) !important;
+  color: #caffdf !important;
+}
+
+.camera-alert.error {
+  background: var(--vms-red-soft) !important;
+  color: #ffd0d6 !important;
+}
+
+/* ---------- forms ---------- */
+
+.camera-form input,
+.camera-form select,
+.camera-form textarea {
+  border: 1px solid var(--vms-border) !important;
+  background: rgba(2, 9, 17, .72) !important;
+  color: var(--vms-text) !important;
+  border-radius: 9px !important;
+}
+
+.camera-form input:focus,
+.camera-form select:focus,
+.camera-form textarea:focus {
+  outline: none;
+  border-color: rgba(34,150,255,.55) !important;
+  box-shadow:
+    0 0 0 3px rgba(34,150,255,.10);
+}
+
+/* ---------- professional utility buttons ---------- */
+
+.camera-refresh-button,
+.camera-add-button,
+.camera-status-button,
+.camera-action-button {
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 9px;
+  border: 1px solid var(--vms-border);
+  background: rgba(16, 33, 51, .92);
+  color: var(--vms-text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.camera-add-button {
+  border-color: rgba(34,150,255,.45);
+  background: linear-gradient(
+    180deg,
+    rgba(34,150,255,.24),
+    rgba(34,150,255,.10)
+  );
+}
+
+.camera-refresh-button:hover,
+.camera-status-button:hover,
+.camera-add-button:hover {
+  border-color: rgba(89,180,255,.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,.20);
+}
+
+/* ---------- remove accidental broken glyph look ---------- */
+
+.camera-digital-controls button,
+.camera-view-toolbar button,
+.camera-controls button {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---------- sidebar polish ---------- */
+
+.dashboard-layout aside,
+.dashboard-layout nav {
+  scrollbar-width: thin;
+}
+
+.dashboard-layout a {
+  text-decoration: none;
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}

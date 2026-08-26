@@ -6,6 +6,7 @@ from django.http import (
     JsonResponse,
     StreamingHttpResponse,
 )
+from django.views.decorators.http import require_GET
 from django.shortcuts import get_object_or_404
 
 from rest_framework.permissions import (
@@ -20,8 +21,11 @@ from streaming.camera_frame_hub import (
     camera_frame_hub,
 )
 
+from streaming.camera_ai_frame_hub import (
+    camera_ai_frame_hub,
+)
+
 from streaming.camera_monitor_manager import (
-    CameraMonitorManager,
     camera_monitor_manager,
 )
 
@@ -106,96 +110,104 @@ class CameraLiveTokenView(APIView):
         )
 
 
-class CameraMJPEGView(APIView):
+@require_GET
+def camera_mjpeg_view(request, camera_id):
     """
-    Low-latency shared-frame MJPEG endpoint.
+    Plain Django MJPEG streaming endpoint.
 
-    This endpoint DOES NOT open RTSP.
-
-    CameraMonitorManager owns the single RTSP connection and
-    continuously publishes the latest JPEG into camera_frame_hub.
+    RTSP is handled by CameraMonitorManager.
+    This endpoint only reads JPEG packets from the
+    process-local CameraFrameHub.
     """
 
-    permission_classes = [AllowAny]
+    access_token = request.GET.get(
+        "access_token",
+        "",
+    )
 
-    def get(
-        self,
-        request,
-        camera_id,
+    if not access_token:
+        return JsonResponse(
+            {
+                "detail": (
+                    "Live stream access token "
+                    "is required."
+                )
+            },
+            status=401,
+        )
+
+    try:
+        payload = signing.loads(
+            access_token,
+            salt=LIVE_TOKEN_SALT,
+            max_age=LIVE_TOKEN_MAX_AGE,
+        )
+    except signing.BadSignature:
+        return JsonResponse(
+            {
+                "detail": (
+                    "Invalid or expired live "
+                    "stream token."
+                )
+            },
+            status=401,
+        )
+
+    if int(
+        payload.get("camera_id", -1)
+    ) != int(camera_id):
+        return JsonResponse(
+            {
+                "detail": (
+                    "Live stream token does "
+                    "not match camera."
+                )
+            },
+            status=403,
+        )
+
+    camera = get_object_or_404(
+        Camera,
+        id=camera_id,
+    )
+
+    if not camera_monitor_manager.is_running(
+        camera_id
     ):
-        access_token = request.query_params.get(
-            "access_token",
-            "",
+        return JsonResponse(
+            {
+                "detail": (
+                    "Camera monitor is not running."
+                )
+            },
+            status=409,
         )
 
-        if not access_token:
-            return JsonResponse(
-                {
-                    "detail": (
-                        "Live stream access token "
-                        "is required."
-                    )
-                },
-                status=401,
-            )
+    ai_overlay = request.GET.get(
+        "ai_overlay",
+        "0",
+    ).lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
-        try:
-            payload = signing.loads(
-                access_token,
-                salt=LIVE_TOKEN_SALT,
-                max_age=LIVE_TOKEN_MAX_AGE,
-            )
-        except signing.BadSignature:
-            return JsonResponse(
-                {
-                    "detail": (
-                        "Invalid or expired live "
-                        "stream token."
-                    )
-                },
-                status=401,
-            )
+    selected_hub = (
+        camera_ai_frame_hub
+        if ai_overlay
+        else camera_frame_hub
+    )
 
-        if int(
-            payload.get("camera_id", -1)
-        ) != int(camera_id):
-            return JsonResponse(
-                {
-                    "detail": (
-                        "Live stream token does "
-                        "not match camera."
-                    )
-                },
-                status=403,
-            )
+    def generate():
+        sequence = 0
 
-        camera = get_object_or_404(
-            Camera,
-            id=camera_id,
-        )
-
-        if not camera_monitor_manager.is_running(
-            camera_id
-        ):
-            return JsonResponse(
-                {
-                    "detail": (
-                        "Camera monitor is not running."
-                    )
-                },
-                status=409,
-            )
-
-        def generate():
-            sequence = 0
-
-            while True:
-                packet = (
-                    camera_frame_hub.wait_for_frame(
-                        camera_id,
-                        last_sequence=sequence,
-                        timeout=2.0,
-                    )
+        while True:
+            try:
+                packet = selected_hub.wait_for_frame(
+                    camera_id,
+                    last_sequence=sequence,
+                    timeout=1.0,
                 )
 
                 if packet is None:
@@ -203,7 +215,13 @@ class CameraMJPEGView(APIView):
                         camera_id
                     ):
                         break
+                    continue
 
+                if packet.sequence == sequence:
+                    if not camera_monitor_manager.is_running(
+                        camera_id
+                    ):
+                        break
                     continue
 
                 sequence = packet.sequence
@@ -211,6 +229,9 @@ class CameraMJPEGView(APIView):
                 yield (
                     b"--frame\r\n"
                     b"Content-Type: image/jpeg\r\n"
+                    b"Content-Length: "
+                    + str(len(packet.jpeg)).encode("ascii")
+                    + b"\r\n"
                     b"Cache-Control: no-cache, no-store, "
                     b"must-revalidate\r\n"
                     b"Pragma: no-cache\r\n\r\n"
@@ -218,23 +239,32 @@ class CameraMJPEGView(APIView):
                     + b"\r\n"
                 )
 
-                time.sleep(0.001)
+            except GeneratorExit:
+                break
 
-        response = StreamingHttpResponse(
-            generate(),
-            content_type=(
-                "multipart/x-mixed-replace; "
-                "boundary=frame"
-            ),
-        )
+            except Exception as exc:
+                print(
+                    "LIVE STREAM GENERATOR ERROR:",
+                    repr(exc),
+                    flush=True,
+                )
+                break
 
-        response["Cache-Control"] = (
-            "no-store, no-cache, must-revalidate, "
-            "max-age=0"
-        )
-        response["Pragma"] = "no-cache"
-        response["X-Content-Type-Options"] = (
-            "nosniff"
-        )
+    response = StreamingHttpResponse(
+        generate(),
+        content_type=(
+            "multipart/x-mixed-replace; "
+            "boundary=frame"
+        ),
+    )
 
-        return response
+    response["Cache-Control"] = (
+        "no-store, no-cache, must-revalidate, max-age=0"
+    )
+    response["Pragma"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    response["X-Content-Type-Options"] = "nosniff"
+
+    return response
+
+

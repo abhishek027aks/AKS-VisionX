@@ -145,7 +145,7 @@ function App() {
             <DashboardLayout onLogout={logout} />
           }
         >
-          <Route path="/" element={<Overview />} />
+          <Route path="/" element={<Overview token={token} />} />
           <Route path="/cameras" element={<Cameras />} />
           <Route path="/recordings" element={<Recordings />} />
           <Route path="/tracking" element={<Tracking />} />

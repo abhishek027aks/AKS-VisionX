@@ -707,3 +707,659 @@ button:disabled {
     padding: 15px;
   }
 }
+
+
+/* =========================================================
+   AKS VisionX Professional VMS Design System
+   ========================================================= */
+
+:root {
+  --vms-bg: #050b14;
+  --vms-bg-soft: #08121f;
+  --vms-panel: rgba(9, 20, 33, 0.94);
+  --vms-panel-2: rgba(12, 27, 44, 0.96);
+  --vms-border: rgba(117, 164, 205, 0.18);
+  --vms-border-strong: rgba(70, 165, 255, 0.34);
+
+  --vms-text: #edf6ff;
+  --vms-text-soft: #a9bbcd;
+  --vms-text-muted: #71879b;
+
+  --vms-blue: #2296ff;
+  --vms-blue-soft: rgba(34, 150, 255, 0.13);
+
+  --vms-green: #22d17c;
+  --vms-green-soft: rgba(34, 209, 124, 0.12);
+
+  --vms-red: #ff4d5f;
+  --vms-red-soft: rgba(255, 77, 95, 0.12);
+
+  --vms-yellow: #ffbd2e;
+  --vms-yellow-soft: rgba(255, 189, 46, 0.12);
+
+  --vms-purple: #a86cff;
+  --vms-purple-soft: rgba(168, 108, 255, 0.12);
+
+  --vms-shadow:
+    0 18px 55px rgba(0, 0, 0, 0.32);
+
+  --vms-radius: 14px;
+}
+
+/* ---------- global ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(30, 110, 190, 0.10),
+      transparent 35%
+    ),
+    linear-gradient(
+      180deg,
+      #040a12 0%,
+      #07111d 100%
+    );
+  color: var(--vms-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* ---------- dashboard shell ---------- */
+
+.dashboard-layout {
+  min-height: 100vh;
+  background: transparent;
+}
+
+.dashboard-main {
+  min-width: 0;
+}
+
+.dashboard-content {
+  width: min(100%, 1700px);
+  margin: 0 auto;
+  padding: 22px 24px 32px;
+}
+
+/* ---------- page headers ---------- */
+
+.camera-page-header,
+.dashboard-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.camera-page-header h2,
+.dashboard-page-header h2 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.camera-page-header p,
+.dashboard-page-header p {
+  margin: 7px 0 0;
+  color: var(--vms-text-soft);
+  font-size: 13px;
+}
+
+/* ---------- common professional panel ---------- */
+
+.camera-card-new,
+.storage-card,
+.camera-form,
+.recording-player-card,
+.recording-table-card {
+  border: 1px solid var(--vms-border);
+  border-radius: var(--vms-radius);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(12, 27, 43, 0.96),
+      rgba(7, 17, 29, 0.96)
+    );
+  box-shadow: var(--vms-shadow);
+}
+
+/* ---------- summary cards ---------- */
+
+.camera-summary {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.camera-summary > div {
+  position: relative;
+  overflow: hidden;
+  min-height: 92px;
+  padding: 16px 18px;
+  border: 1px solid var(--vms-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(13, 30, 48, 0.96),
+      rgba(7, 17, 29, 0.96)
+    );
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.22);
+}
+
+.camera-summary > div::after {
+  content: "";
+  position: absolute;
+  inset: auto -25px -35px auto;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      rgba(35, 150, 255, 0.16),
+      transparent 68%
+    );
+  pointer-events: none;
+}
+
+.camera-summary span {
+  display: block;
+  color: var(--vms-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.camera-summary strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* ---------- responsive summary ---------- */
+
+@media (max-width: 1100px) {
+  .camera-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .dashboard-content {
+    padding: 14px;
+  }
+
+  .camera-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* ---------- professional overview ---------- */
+
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.overview-kpi-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-kpi {
+  position: relative;
+  overflow: hidden;
+  min-height: 118px;
+  padding: 17px;
+  border: 1px solid var(--vms-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(13, 30, 48, 0.98),
+      rgba(7, 16, 27, 0.98)
+    );
+  box-shadow: var(--vms-shadow);
+}
+
+.overview-kpi::after {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  right: -38px;
+  bottom: -42px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      rgba(34, 150, 255, .16),
+      transparent 70%
+    );
+}
+
+.overview-kpi-label {
+  color: var(--vms-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.overview-kpi-value {
+  margin-top: 9px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+
+.overview-kpi-meta {
+  margin-top: 7px;
+  color: var(--vms-text-soft);
+  font-size: 12px;
+}
+
+.overview-kpi.online .overview-kpi-value {
+  color: var(--vms-green);
+}
+
+.overview-kpi.recording .overview-kpi-value {
+  color: var(--vms-red);
+}
+
+.overview-kpi.ai .overview-kpi-value {
+  color: var(--vms-purple);
+}
+
+.overview-main-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.7fr)
+    minmax(320px, .9fr);
+  gap: 14px;
+}
+
+.overview-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--vms-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 24, 40, .97),
+      rgba(7, 16, 27, .97)
+    );
+  box-shadow: var(--vms-shadow);
+}
+
+.overview-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 17px;
+  border-bottom: 1px solid var(--vms-border);
+}
+
+.overview-panel-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.overview-panel-header span {
+  color: var(--vms-text-muted);
+  font-size: 11px;
+}
+
+.overview-live-grid {
+  padding: 14px;
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-camera-tile {
+  overflow: hidden;
+  border: 1px solid var(--vms-border);
+  border-radius: 12px;
+  background: #02070d;
+}
+
+.overview-camera-preview {
+  aspect-ratio: 16 / 9;
+  background:
+    radial-gradient(
+      circle at center,
+      #16283b,
+      #03080e 75%
+    );
+}
+
+.overview-camera-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.overview-camera-name {
+  min-width: 0;
+}
+
+.overview-camera-name strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.overview-camera-name small {
+  color: var(--vms-text-muted);
+  font-size: 10px;
+}
+
+.vms-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.vms-status-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.vms-status-pill.online {
+  color: var(--vms-green);
+}
+
+.vms-status-pill.offline {
+  color: var(--vms-red);
+}
+
+.overview-side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overview-list {
+  padding: 6px 14px 14px;
+}
+
+.overview-list-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.overview-list-item:last-child {
+  border-bottom: 0;
+}
+
+.overview-list-item strong {
+  display: block;
+  font-size: 12px;
+}
+
+.overview-list-item span,
+.overview-list-item small {
+  color: var(--vms-text-muted);
+  font-size: 10px;
+}
+
+.overview-action-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-action-card {
+  padding: 15px;
+  border: 1px solid var(--vms-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(12, 27, 44, .96),
+      rgba(6, 14, 24, .96)
+    );
+  box-shadow: 0 10px 26px rgba(0,0,0,.20);
+}
+
+.overview-action-card strong {
+  display: block;
+  font-size: 12px;
+}
+
+.overview-action-card span {
+  display: block;
+  margin-top: 5px;
+  color: var(--vms-text-muted);
+  font-size: 10px;
+}
+
+.overview-action-card button {
+  width: 100%;
+  margin-top: 11px;
+  min-height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--vms-border-strong);
+  background: var(--vms-blue-soft);
+  color: #d9efff;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+@media (max-width: 1250px) {
+  .overview-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .overview-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 850px) {
+  .overview-live-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .overview-kpi-grid,
+  .overview-action-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- tables ---------- */
+
+.recordings-table,
+table {
+  color: var(--vms-text);
+}
+
+table thead th {
+  color: var(--vms-text-muted);
+  background: rgba(255,255,255,.025);
+  border-bottom: 1px solid var(--vms-border);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+table tbody tr:hover {
+  background: rgba(255,255,255,.025);
+}
+
+/* ---------- clean status / alerts ---------- */
+
+.camera-alert {
+  border-radius: 10px !important;
+  border: 1px solid var(--vms-border) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+
+.camera-alert.success {
+  background: var(--vms-green-soft) !important;
+  color: #caffdf !important;
+}
+
+.camera-alert.error {
+  background: var(--vms-red-soft) !important;
+  color: #ffd0d6 !important;
+}
+
+/* ---------- forms ---------- */
+
+.camera-form input,
+.camera-form select,
+.camera-form textarea {
+  border: 1px solid var(--vms-border) !important;
+  background: rgba(2, 9, 17, .72) !important;
+  color: var(--vms-text) !important;
+  border-radius: 9px !important;
+}
+
+.camera-form input:focus,
+.camera-form select:focus,
+.camera-form textarea:focus {
+  outline: none;
+  border-color: rgba(34,150,255,.55) !important;
+  box-shadow:
+    0 0 0 3px rgba(34,150,255,.10);
+}
+
+/* ---------- professional utility buttons ---------- */
+
+.camera-refresh-button,
+.camera-add-button,
+.camera-status-button,
+.camera-action-button {
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 9px;
+  border: 1px solid var(--vms-border);
+  background: rgba(16, 33, 51, .92);
+  color: var(--vms-text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.camera-add-button {
+  border-color: rgba(34,150,255,.45);
+  background: linear-gradient(
+    180deg,
+    rgba(34,150,255,.24),
+    rgba(34,150,255,.10)
+  );
+}
+
+.camera-refresh-button:hover,
+.camera-status-button:hover,
+.camera-add-button:hover {
+  border-color: rgba(89,180,255,.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,.20);
+}
+
+/* ---------- remove accidental broken glyph look ---------- */
+
+.camera-digital-controls button,
+.camera-view-toolbar button,
+.camera-controls button {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---------- sidebar polish ---------- */
+
+.dashboard-layout aside,
+.dashboard-layout nav {
+  scrollbar-width: thin;
+}
+
+.dashboard-layout a {
+  text-decoration: none;
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}

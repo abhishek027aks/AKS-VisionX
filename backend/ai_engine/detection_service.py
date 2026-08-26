@@ -34,7 +34,7 @@ class YOLODetectionService:
         self,
         model_path="yolo11n.pt",
         tracker="bytetrack.yaml",
-        confidence=0.25,
+        confidence=0.20,
         imgsz=416,
     ):
         self.model_path = model_path
