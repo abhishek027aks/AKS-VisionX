@@ -840,15 +840,25 @@ class CameraAPIAuthorizationTests(TestCase):
         self.camera_b.refresh_from_db()
         self.assertEqual(self.camera_b.name, "Camera B")
 
+<<<<<<< HEAD
     def test_operator_can_delete_camera(self):
+=======
+    def test_operator_cannot_delete_camera(self):
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
         self.authenticate(self.operator)
 
         response = self.client.delete(
             f"/api/cameras/{self.camera_a.id}/"
         )
 
+<<<<<<< HEAD
         self.assertEqual(response.status_code, 204)
         self.assertFalse(
+=======
+        self.assertEqual(response.status_code, 403)
+
+        self.assertTrue(
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             Camera.objects.filter(pk=self.camera_a.id).exists()
         )
 
@@ -3453,3 +3463,7 @@ class TrackingDetailAPIAuthorizationTests(TestCase):
 
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d

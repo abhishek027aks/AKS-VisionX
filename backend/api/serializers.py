@@ -184,6 +184,7 @@ class CameraSerializer(serializers.ModelSerializer):
 
         parsed = urlparse(value)
 
+<<<<<<< HEAD
         if parsed.scheme.lower() == "local":
             if parsed.netloc.isdigit() and parsed.path in ("", "/"):
                 return value
@@ -194,6 +195,11 @@ class CameraSerializer(serializers.ModelSerializer):
         if parsed.scheme.lower() not in ["rtsp", "http", "https"]:
             raise serializers.ValidationError(
                 "Stream URL must start with rtsp://, http://, https://, or local://."
+=======
+        if parsed.scheme.lower() not in ["rtsp", "http", "https"]:
+            raise serializers.ValidationError(
+                "Stream URL must start with rtsp://, http://, or https://."
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             )
 
         if not parsed.netloc:
@@ -206,6 +212,7 @@ class CameraSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         user = request.user if request else None
+<<<<<<< HEAD
         connection_type = attrs.get(
             "connection_type",
             self.instance.connection_type if self.instance else None,
@@ -237,6 +244,8 @@ class CameraSerializer(serializers.ModelSerializer):
                     )
                 }
             )
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
         if (
             self.instance is None
@@ -273,12 +282,20 @@ class CameraSerializer(serializers.ModelSerializer):
                 stream.save(update_fields=["enabled", "updated_at"])
             return
 
+<<<<<<< HEAD
         if stream_url.lower().startswith("rtsp://"):
             protocol = CameraStream.Protocol.RTSP
         elif stream_url.lower().startswith("local://"):
             protocol = CameraStream.Protocol.OTHER
         else:
             protocol = CameraStream.Protocol.HTTP
+=======
+        protocol = (
+            CameraStream.Protocol.RTSP
+            if stream_url.lower().startswith("rtsp://")
+            else CameraStream.Protocol.HTTP
+        )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
         if stream is None:
             CameraStream.objects.create(
@@ -946,3 +963,7 @@ class TrackingCameraVisitSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d

@@ -1,0 +1,76 @@
+import axios from 'axios'
+import type { Camera, CameraStatus } from '../types/camera'
+
+const API = '/api'
+
+const authConfig = (token: string) => ({
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+})
+
+export async function getCameras(token: string) {
+  const response = await axios.get(
+    `${API}/cameras/`,
+    authConfig(token),
+  )
+
+  const data = Array.isArray(response.data)
+    ? response.data
+    : response.data.results || []
+
+  return data as Camera[]
+}
+
+export async function getCameraStatus(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.get(
+    `${API}/cameras/${cameraId}/status/`,
+    authConfig(token),
+  )
+
+  return response.data as CameraStatus
+}
+
+export async function getCameraLiveToken(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.get(
+    `${API}/cameras/${cameraId}/live-token/`,
+    authConfig(token),
+  )
+
+  return response.data as {
+    token: string
+    expires_in: number
+  }
+}
+
+export async function startCamera(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.post(
+    `${API}/cameras/${cameraId}/start/`,
+    {},
+    authConfig(token),
+  )
+
+  return response.data
+}
+
+export async function stopCamera(
+  token: string,
+  cameraId: number,
+) {
+  const response = await axios.post(
+    `${API}/cameras/${cameraId}/stop/`,
+    {},
+    authConfig(token),
+  )
+
+  return response.data
+}

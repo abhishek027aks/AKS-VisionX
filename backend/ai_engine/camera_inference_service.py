@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 import threading
 
 from django.utils import timezone
+=======
+﻿from django.utils import timezone
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 from streaming.camera_stream_service import (
     CameraStream,
@@ -42,6 +46,7 @@ class CameraInferenceService:
         tracking_timeout_seconds=30,
     ):
         self.source = source
+<<<<<<< HEAD
         self.model_path = model_path
         self.tracker = tracker
         self.confidence = confidence
@@ -50,6 +55,11 @@ class CameraInferenceService:
         )
         self._ai_service_lock = threading.Lock()
         self._ai_service_initialization_error = None
+=======
+        self.tracking_timeout_seconds = (
+            tracking_timeout_seconds
+        )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
         self.stream = CameraStream(
             source=source,
@@ -57,6 +67,7 @@ class CameraInferenceService:
             reconnect_delay=reconnect_delay,
         )
 
+<<<<<<< HEAD
         self.ai_service = None
 
         self.running = False
@@ -88,6 +99,16 @@ class CameraInferenceService:
 
         return self.ai_service
 
+=======
+        self.ai_service = AIInferenceService(
+            model_path=model_path,
+            tracker=tracker,
+            confidence=confidence,
+        )
+
+        self.running = False
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     def connect(self):
         try:
             return self.stream.connect()
@@ -124,7 +145,11 @@ class CameraInferenceService:
             )
 
         try:
+<<<<<<< HEAD
             result = self._get_ai_service().process_frame(
+=======
+            result = self.ai_service.process_frame(
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 camera=camera,
                 frame=frame,
                 occurred_at=timezone.now(),

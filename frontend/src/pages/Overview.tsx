@@ -52,7 +52,10 @@ type DashboardSummary = {
     camera_visits: number
     active_tracking: number
     recordings: number
+<<<<<<< HEAD
     animal_tracks: number
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   }
   recent_events: any[]
   recent_alerts: any[]
@@ -653,6 +656,7 @@ function Overview({
                 </strong>
               </div>
 
+<<<<<<< HEAD
               <div className="ov-ai-stat animal">
                 <span>ANIMAL TRACKS</span>
                 <strong>
@@ -660,6 +664,8 @@ function Overview({
                 </strong>
               </div>
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
               <div className="ov-ai-stat tracking">
                 <span>
                   ACTIVE TRACKING

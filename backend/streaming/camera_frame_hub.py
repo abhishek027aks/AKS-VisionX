@@ -190,9 +190,12 @@ class CameraFrameHub:
                 jpeg, width, height = result
 
                 with self._lock:
+<<<<<<< HEAD
                     if stop_event.is_set():
                         continue
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                     previous = self._frames.get(
                         camera_id
                     )
@@ -244,6 +247,7 @@ class CameraFrameHub:
 
             if (
                 current is not None
+<<<<<<< HEAD
                 and current.sequence > last_sequence
             ):
                 return current
@@ -253,10 +257,23 @@ class CameraFrameHub:
                 if remaining <= 0:
                     return self._frames.get(camera_id)
 
+=======
+                and current.sequence != last_sequence
+            ):
+                return current
+
+            remaining = max(
+                0,
+                deadline - time.monotonic(),
+            )
+
+            if remaining:
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 condition.wait(
                     timeout=remaining
                 )
 
+<<<<<<< HEAD
                 current = self._frames.get(camera_id)
                 if (
                     current is not None
@@ -274,6 +291,20 @@ class CameraFrameHub:
                 stop_event.set()
 
             self._frames.pop(
+=======
+            return self._frames.get(
+                camera_id
+            )
+
+    def clear(self, camera_id):
+        with self._lock:
+            self._frames.pop(
+                camera_id,
+                None,
+            )
+
+            stop_event = self._stop_events.pop(
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 camera_id,
                 None,
             )
@@ -300,9 +331,15 @@ class CameraFrameHub:
 
     def clear_all(self):
         with self._lock:
+<<<<<<< HEAD
             camera_ids = set(self._frames)
             camera_ids.update(self._queues)
             camera_ids.update(self._threads)
+=======
+            camera_ids = list(
+                self._frames.keys()
+            )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
         for camera_id in camera_ids:
             self.clear(camera_id)

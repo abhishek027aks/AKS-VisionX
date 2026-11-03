@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+<<<<<<< HEAD
 from unittest.mock import patch
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 from django.test import TestCase
 
@@ -103,12 +106,15 @@ class CameraInferenceServiceTests(TestCase):
             ["session-1"],
         )
 
+<<<<<<< HEAD
         ai_service_class.assert_called_once_with(
             model_path="test-model.pt",
             tracker="bytetrack.yaml",
             confidence=0.25,
         )
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     @patch(
         "ai_engine.camera_inference_service.AIInferenceService"
     )
@@ -197,6 +203,7 @@ class CameraInferenceServiceTests(TestCase):
 
         stream.release.assert_called_once()
 
+<<<<<<< HEAD
         ai_service_class.assert_not_called()
 
     @patch(
@@ -242,6 +249,13 @@ class CameraInferenceServiceTests(TestCase):
                 )
 
         ai_service_class.assert_called_once()
+=======
+        ai_service_class.assert_called_once_with(
+            model_path="test-model.pt",
+            tracker="bytetrack.yaml",
+            confidence=0.25,
+        )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
     def test_process_frame_requires_camera(self):
         service = CameraInferenceService.__new__(

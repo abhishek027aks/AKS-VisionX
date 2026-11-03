@@ -74,6 +74,7 @@
   font-size: 12px;
 }
 
+<<<<<<< HEAD
 .camera-discovery-panel {
   margin-bottom: 16px;
   padding: 14px;
@@ -139,6 +140,8 @@
   padding: 7px 10px;
 }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 .camera-form-header button,
 .camera-form-actions button {
   padding: 9px 13px;
@@ -163,6 +166,7 @@
   font-weight: 700;
 }
 
+<<<<<<< HEAD
 .camera-form-grid label span {
   color: #8ea0b5;
   font-size: 11px;
@@ -170,6 +174,8 @@
   line-height: 1.5;
 }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 .camera-form-grid .wide {
   grid-column: 1 / -1;
 }
@@ -214,7 +220,10 @@
 .camera-form-actions {
   display: flex;
   justify-content: flex-end;
+<<<<<<< HEAD
   gap: 10px;
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   margin-top: 15px;
 }
 
@@ -662,6 +671,7 @@
     grid-template-columns: 1fr;
   }
 
+<<<<<<< HEAD
   .camera-discovery-device {
     align-items: flex-start;
     flex-direction: column;
@@ -671,6 +681,8 @@
     width: 100%;
   }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   .camera-preview-new {
     height: 220px;
   }
@@ -1064,3 +1076,7 @@
     max-width: calc(100% - 24px);
   }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d

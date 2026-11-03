@@ -1,5 +1,8 @@
 ﻿import time
+<<<<<<< HEAD
 from urllib.parse import urlsplit
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 import cv2
 
@@ -9,6 +12,7 @@ class CameraStreamError(Exception):
     pass
 
 
+<<<<<<< HEAD
 def normalize_camera_source(source):
     """Convert the stored local-camera URI into an OpenCV device index."""
     if not isinstance(source, str) or not source.lower().startswith("local://"):
@@ -31,6 +35,8 @@ def normalize_camera_source(source):
     return device_index
 
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 class CameraStream:
     """
     OpenCV-based camera stream reader.
@@ -52,7 +58,11 @@ class CameraStream:
         open_timeout_ms=10000,
         read_timeout_ms=10000,
     ):
+<<<<<<< HEAD
         self.source = normalize_camera_source(source)
+=======
+        self.source = source
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
         self.reconnect_attempts = reconnect_attempts
         self.reconnect_delay = reconnect_delay
         self.open_timeout_ms = open_timeout_ms
@@ -77,6 +87,7 @@ class CameraStream:
     def _open_capture(self):
         """Create and configure the underlying OpenCV capture."""
 
+<<<<<<< HEAD
         backends = [self._get_backend()]
         if isinstance(self.source, int):
             backends.extend(
@@ -103,6 +114,14 @@ class CameraStream:
             raise CameraStreamError(
                 f"Unable to create camera stream: {self.source}"
             )
+=======
+        backend = self._get_backend()
+
+        capture = cv2.VideoCapture(
+            self.source,
+            backend,
+        )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
         try:
             capture.set(

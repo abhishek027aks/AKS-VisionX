@@ -5,7 +5,10 @@ from django.test import SimpleTestCase
 from streaming.camera_stream_service import (
     CameraStream,
     CameraStreamError,
+<<<<<<< HEAD
     normalize_camera_source,
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 )
 
 
@@ -14,6 +17,7 @@ class CameraStreamTests(SimpleTestCase):
     @patch(
         "streaming.camera_stream_service.cv2.VideoCapture"
     )
+<<<<<<< HEAD
     def test_local_camera_uri_uses_directshow_device_index(
         self,
         video_capture,
@@ -42,6 +46,8 @@ class CameraStreamTests(SimpleTestCase):
     @patch(
         "streaming.camera_stream_service.cv2.VideoCapture"
     )
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     def test_connect_success(self, video_capture):
         capture = MagicMock()
         capture.isOpened.return_value = True

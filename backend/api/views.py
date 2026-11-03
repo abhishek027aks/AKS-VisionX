@@ -48,7 +48,10 @@ class LoginTokenObtainPairView(TokenObtainPairView):
     serializer_class = LoginTokenObtainPairSerializer
 
 from streaming.camera_monitor_manager import CameraMonitorManager, camera_monitor_manager
+<<<<<<< HEAD
 from streaming.camera_stream_service import CameraStream
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 from ai_engine.camera_inference_service import (
     CameraInferenceError,
@@ -56,10 +59,13 @@ from ai_engine.camera_inference_service import (
 )
 
 from cameras.models import Camera, CameraStream
+<<<<<<< HEAD
 from cameras.connection_discovery import (
     CameraConnectionRequest,
     camera_connection_discovery_service,
 )
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 from cameras.ptz_service import (
     PTZError,
@@ -79,10 +85,13 @@ from events.models import (
     TrackingCameraVisit,
     Event,
 )
+<<<<<<< HEAD
 from events.analytics_service import (
     TRACKING_PERIODS,
     get_tracking_analytics,
 )
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 from events.tracking_summary_service import get_tracking_session_summary
 
 
@@ -178,9 +187,12 @@ class CameraViewSet(viewsets.ModelViewSet):
             "update",
             "process_frame",
             "test_connection",
+<<<<<<< HEAD
             "test_new_connection",
             "discover_local",
             "discover_onvif",
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             "start_monitoring",
             "stop_monitoring",
             "ptz_detect",
@@ -194,7 +206,11 @@ class CameraViewSet(viewsets.ModelViewSet):
             permission_classes = [IsOperatorOrAbove]
 
         elif self.action == "destroy":
+<<<<<<< HEAD
             permission_classes = [IsOperatorOrAbove]
+=======
+            permission_classes = [IsAdminOrSuperAdmin]
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
         else:
             permission_classes = [IsAuthenticated]
@@ -234,6 +250,7 @@ class CameraViewSet(viewsets.ModelViewSet):
         camera_monitor_manager.stop_camera(camera.id)
         return super().destroy(request, *args, **kwargs)
 
+<<<<<<< HEAD
     @action(detail=False, methods=["post"], url_path="test-connection")
     def test_new_connection(self, request):
         result = camera_connection_discovery_service.test(
@@ -268,6 +285,8 @@ class CameraViewSet(viewsets.ModelViewSet):
         result = camera_connection_discovery_service.discover_onvif_devices()
         return Response(result, status=status.HTTP_200_OK)
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     @action(
         detail=True,
         methods=["post"],
@@ -301,8 +320,12 @@ class CameraViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+<<<<<<< HEAD
         is_local_camera = stream_url.lower().startswith("local://")
         if not is_local_camera and not stream_url.lower().startswith(
+=======
+        if not stream_url.lower().startswith(
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             ("rtsp://", "http://", "https://")
         ):
             return Response(
@@ -310,7 +333,11 @@ class CameraViewSet(viewsets.ModelViewSet):
                     "status": "invalid_url",
                     "detail": (
                         "Stream URL must start with rtsp://, "
+<<<<<<< HEAD
                         "http://, https://, or local://."
+=======
+                        "http://, or https://."
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                     ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -319,6 +346,7 @@ class CameraViewSet(viewsets.ModelViewSet):
         try:
             import cv2
 
+<<<<<<< HEAD
             if is_local_camera:
                 capture = CameraStream(
                     source=stream_url,
@@ -353,6 +381,25 @@ class CameraViewSet(viewsets.ModelViewSet):
                     height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT) if opened else 0
                 finally:
                     capture.release()
+=======
+            stream_url = CameraMonitorManager._build_authenticated_stream_url(
+                camera,
+                stream_url,
+            )
+
+            capture = cv2.VideoCapture(stream_url)
+            capture.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000)
+            capture.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000)
+
+            try:
+                opened = capture.isOpened()
+                ok, frame = capture.read() if opened else (False, None)
+                fps = capture.get(cv2.CAP_PROP_FPS) if opened else 0
+                width = capture.get(cv2.CAP_PROP_FRAME_WIDTH) if opened else 0
+                height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT) if opened else 0
+            finally:
+                capture.release()
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
             if not opened:
                 return Response(
@@ -839,6 +886,7 @@ class CameraViewSet(viewsets.ModelViewSet):
                             )
                             or 0
                         ),
+<<<<<<< HEAD
                         "animals": int(
                             ai.get(
                                 "animal_count",
@@ -850,6 +898,8 @@ class CameraViewSet(viewsets.ModelViewSet):
                             "animal_species_counts",
                             {},
                         ),
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                         "objects": int(
                             ai.get(
                                 "object_count",
@@ -980,9 +1030,12 @@ class CameraViewSet(viewsets.ModelViewSet):
                 "name": camera.name,
                 "running": monitor_status["running"],
                 "status": camera.status,
+<<<<<<< HEAD
                 "connection_error": monitor_status.get(
                     "connection_error"
                 ),
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 "last_seen": camera.last_seen,
                 "enabled": camera.enabled,
                 "recording": active_recording is not None,
@@ -1019,12 +1072,15 @@ class CameraViewSet(viewsets.ModelViewSet):
                 "ai_vehicle_count": ai_status[
                     "vehicle_count"
                 ],
+<<<<<<< HEAD
                 "ai_animal_count": ai_status[
                     "animal_count"
                 ],
                 "ai_animal_species_counts": ai_status[
                     "animal_species_counts"
                 ],
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 "ai_object_count": ai_status[
                     "object_count"
                 ],
@@ -1034,7 +1090,10 @@ class CameraViewSet(viewsets.ModelViewSet):
                 "ai_overlay_available": ai_status[
                     "overlay_available"
                 ],
+<<<<<<< HEAD
                 "ai_error": ai_status.get("error"),
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             }
         )
 
@@ -1468,10 +1527,13 @@ def dashboard_summary(request):
         request.user,
     )
 
+<<<<<<< HEAD
     animal_tracking_sessions = tracking_session_qs.filter(
         object_type=TrackingSession.ObjectType.ANIMAL,
     )
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     tracking_point_qs = TrackingPoint.objects.filter(
         tracking_session__in=tracking_session_qs,
     )
@@ -1487,7 +1549,10 @@ def dashboard_summary(request):
     recording_qs = organization_queryset(
         Recording.objects.all(),
         request.user,
+<<<<<<< HEAD
         field="camera__organization",
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     )
 
     cameras = []
@@ -1602,7 +1667,10 @@ def dashboard_summary(request):
                 "alerts": alert_qs.count(),
                 "active_alerts": active_alerts,
                 "tracking_sessions": tracking_session_qs.count(),
+<<<<<<< HEAD
                 "animal_tracks": animal_tracking_sessions.count(),
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 "tracking_points": tracking_point_qs.count(),
                 "tracking_locations": tracking_location_qs.count(),
                 "camera_visits": tracking_visit_qs.count(),
@@ -1616,6 +1684,7 @@ def dashboard_summary(request):
     )
 
 
+<<<<<<< HEAD
 @api_view(["GET"])
 @permission_classes([IsViewerOrAbove])
 def tracking_analytics(request):
@@ -1647,6 +1716,8 @@ def tracking_analytics(request):
     )
 
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 

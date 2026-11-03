@@ -1,7 +1,12 @@
 @echo off
+<<<<<<< HEAD
 setlocal
 title AKS VisionX - GitHub Auto Update
 cd /d "%~dp0"
+=======
+title AKS VisionX - GitHub Auto Update
+cd /d "E:\AKS VisionX"
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 echo.
 echo ==========================================
@@ -9,6 +14,7 @@ echo       AKS VisionX - GitHub Updater
 echo ==========================================
 echo.
 
+<<<<<<< HEAD
 git rev-parse --is-inside-work-tree >nul 2>&1
 if errorlevel 1 (
     echo ERROR: This project folder is not a Git checkout.
@@ -24,6 +30,8 @@ if not "%CURRENT_BRANCH%"=="main" (
     exit /b 1
 )
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 echo [1/5] Checking repository...
 git status
 

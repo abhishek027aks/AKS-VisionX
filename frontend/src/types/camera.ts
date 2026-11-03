@@ -8,16 +8,22 @@
   port?: number | null
   username?: string
   status?: string
+<<<<<<< HEAD
   connection_error?: string | null
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   running?: boolean
   recording?: boolean
   recording_id?: number | null
   recording_started_at?: string | null
   recording_enabled?: boolean
   ai_supported?: boolean
+<<<<<<< HEAD
   ai_animal_count?: number
   ai_animal_species_counts?: Record<string, number>
   ai_error?: string | null
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   enabled?: boolean
   last_seen?: string | null
   main_stream?: {
@@ -47,16 +53,22 @@
 
 export type CameraStatus = {
   status?: string
+<<<<<<< HEAD
   connection_error?: string | null
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   running?: boolean
   recording?: boolean
   recording_id?: number | null
   recording_started_at?: string | null
   recording_enabled?: boolean
   ai_supported?: boolean
+<<<<<<< HEAD
   ai_animal_count?: number
   ai_animal_species_counts?: Record<string, number>
   ai_error?: string | null
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   enabled?: boolean
   last_seen?: string | null
   fps?: number | string | null

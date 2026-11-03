@@ -55,8 +55,11 @@ export type CameraPayload = {
   username: string
   credential_encrypted?: string
   connection_type: string
+<<<<<<< HEAD
   host?: string
   port?: number | null
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   description: string
   location: string
   enabled: boolean
@@ -65,6 +68,7 @@ export type CameraPayload = {
   rtsp_supported: boolean
 }
 
+<<<<<<< HEAD
 export type NewCameraConnectionPayload = {
   camera_type: string
   host?: string
@@ -142,6 +146,8 @@ export async function discoverOnvifCameras(token: string) {
   return response.data as CameraDiscoveryResult<OnvifCameraDevice>
 }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 export async function createCamera(
   token: string,
   payload: CameraPayload,
@@ -173,6 +179,7 @@ export async function deleteCamera(
   token: string,
   cameraId: number,
 ) {
+<<<<<<< HEAD
   const response = await axios.delete(
     `${API}/cameras/${cameraId}/`,
     authConfig(token),
@@ -182,6 +189,12 @@ export async function deleteCamera(
     status?: string
     detail?: string
   } | undefined
+=======
+  return axios.delete(
+    `${API}/cameras/${cameraId}/`,
+    authConfig(token),
+  )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 }
 
 export async function testCameraConnection(

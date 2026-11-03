@@ -14,18 +14,24 @@ import {
   startCamera,
   stopCamera,
   testCameraConnection,
+<<<<<<< HEAD
   testNewCameraConnection,
   discoverLocalCameras,
   discoverOnvifCameras,
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   updateCamera,
   moveCameraPTZ,
   stopCameraPTZ,
   homeCameraPTZ,
   gotoCameraPTZPreset,
   type CameraPayload,
+<<<<<<< HEAD
   type NewCameraConnectionResult,
   type LocalCameraDevice,
   type OnvifCameraDevice,
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   type PTZPreset,
 } from '../services/cameraService'
 import type { Camera } from '../types/camera'
@@ -56,9 +62,12 @@ const DEFAULT_DIGITAL_VIEW: DigitalView = {
 
 type CameraFormState = CameraPayload & {
   password: string
+<<<<<<< HEAD
   discovery_host: string
   discovery_port: string
   local_device_index: string
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 }
 
 const emptyCameraForm: CameraFormState = {
@@ -66,9 +75,12 @@ const emptyCameraForm: CameraFormState = {
   main_stream_url: '',
   username: '',
   password: '',
+<<<<<<< HEAD
   discovery_host: '',
   discovery_port: '',
   local_device_index: '0',
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   connection_type: 'RTSP',
   description: '',
   location: '',
@@ -84,7 +96,10 @@ function getMainStreamUrl(camera: Camera) {
 
 function Cameras() {
   const token = localStorage.getItem('aks_token') || ''
+<<<<<<< HEAD
   const autoStartAttempted = useRef(false)
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
   const [cameras, setCameras] = useState<Camera[]>([])
   const [loading, setLoading] = useState(true)
@@ -114,6 +129,7 @@ function Cameras() {
     emptyCameraForm,
   )
   const [savingCamera, setSavingCamera] = useState(false)
+<<<<<<< HEAD
   const [testingNewConnection, setTestingNewConnection] = useState(false)
   const [newConnectionResult, setNewConnectionResult] =
     useState<NewCameraConnectionResult | null>(null)
@@ -123,6 +139,8 @@ function Cameras() {
   const [discoveringOnvif, setDiscoveringOnvif] = useState(false)
   const [onvifDevices, setOnvifDevices] = useState<OnvifCameraDevice[]>([])
   const [onvifDiscoveryMessage, setOnvifDiscoveryMessage] = useState('')
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   const [testingId, setTestingId] = useState<number | null>(null)
   const [testResults, setTestResults] = useState<
     Record<number, string>
@@ -423,6 +441,7 @@ function Cameras() {
   }, [loadCameras])
 
   useEffect(() => {
+<<<<<<< HEAD
     if (!token || loading || autoStartAttempted.current) return
 
     autoStartAttempted.current = true
@@ -458,6 +477,8 @@ function Cameras() {
   }, [cameras, loadCameras, loading, requestLiveToken, token])
 
   useEffect(() => {
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     if (!cameras.length) return
 
     refreshStatus(cameras)
@@ -821,11 +842,14 @@ function Cameras() {
   const openAddForm = () => {
     setEditingCamera(null)
     setForm(emptyCameraForm)
+<<<<<<< HEAD
     setNewConnectionResult(null)
     setLocalDevices([])
     setLocalDiscoveryMessage('')
     setOnvifDevices([])
     setOnvifDiscoveryMessage('')
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     setShowCameraForm(true)
     setMessage('')
     setError('')
@@ -838,10 +862,13 @@ function Cameras() {
       main_stream_url: getMainStreamUrl(camera),
       username: camera.username || '',
       password: '',
+<<<<<<< HEAD
       discovery_host: camera.host || '',
       discovery_port: camera.port ? String(camera.port) : '',
       local_device_index:
         getMainStreamUrl(camera).match(/^local:\/\/(\d+)$/i)?.[1] || '0',
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
       connection_type: camera.connection_type || 'RTSP',
       description: camera.description || '',
       location: camera.location || '',
@@ -850,11 +877,14 @@ function Cameras() {
       ai_supported: camera.ai_supported === true,
       rtsp_supported: true,
     })
+<<<<<<< HEAD
     setNewConnectionResult(null)
     setLocalDevices([])
     setLocalDiscoveryMessage('')
     setOnvifDevices([])
     setOnvifDiscoveryMessage('')
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     setShowCameraForm(true)
     setMessage('')
     setError('')
@@ -865,6 +895,7 @@ function Cameras() {
       return 'Camera name is required.'
     }
 
+<<<<<<< HEAD
     if (form.connection_type === 'LOCAL') {
       const deviceIndex = Number(form.local_device_index)
       if (
@@ -887,12 +918,25 @@ function Cameras() {
       ) {
         return 'Stream URL must start with rtsp://, http://, or https://.'
       }
+=======
+    if (!form.main_stream_url.trim()) {
+      return 'RTSP/stream URL is required.'
+    }
+
+    if (
+      !/^((rtsp|http|https):\/\/).+/i.test(
+        form.main_stream_url.trim(),
+      )
+    ) {
+      return 'Stream URL must start with rtsp://, http://, or https://.'
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     }
 
     return ''
   }
 
   const cameraPayload = () => {
+<<<<<<< HEAD
     const streamUrl =
       form.connection_type === 'LOCAL'
         ? `local://${form.local_device_index.trim()}`
@@ -911,11 +955,15 @@ function Cameras() {
       }
     }
 
+=======
+    const streamUrl = form.main_stream_url.trim()
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     const payload: CameraPayload = {
       name: form.name.trim(),
       main_stream_url: streamUrl,
       username: form.username.trim(),
       connection_type: form.connection_type,
+<<<<<<< HEAD
       host:
         form.connection_type === 'LOCAL'
           ? ''
@@ -926,6 +974,8 @@ function Cameras() {
           : form.discovery_port.trim()
             ? Number(form.discovery_port)
             : streamPort,
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
       description: form.description.trim(),
       location: form.location.trim(),
       enabled: form.enabled,
@@ -943,6 +993,7 @@ function Cameras() {
     return payload
   }
 
+<<<<<<< HEAD
   const testNewConnection = async () => {
     setTestingNewConnection(true)
     setMessage('')
@@ -1062,6 +1113,8 @@ function Cameras() {
     setNewConnectionResult(null)
   }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
   const saveCamera = async (event: FormEvent) => {
     event.preventDefault()
 
@@ -1077,7 +1130,10 @@ function Cameras() {
     setError('')
 
     try {
+<<<<<<< HEAD
       const creatingCamera = !editingCamera
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
       const saved = editingCamera
         ? await updateCamera(
             token,
@@ -1086,10 +1142,19 @@ function Cameras() {
           )
         : await createCamera(token, cameraPayload())
 
+<<<<<<< HEAD
+=======
+      setMessage(
+        `${saved.name || 'Camera'} ${
+          editingCamera ? 'updated' : 'added'
+        } successfully.`,
+      )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
       setShowCameraForm(false)
       setEditingCamera(null)
       setForm(emptyCameraForm)
       await loadCameras()
+<<<<<<< HEAD
 
       if (!creatingCamera) {
         setMessage(`${saved.name || 'Camera'} updated successfully.`)
@@ -1121,6 +1186,8 @@ function Cameras() {
           }`,
         )
       }
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     } catch (err: any) {
       const data = err?.response?.data
       setError(
@@ -1172,7 +1239,15 @@ function Cameras() {
   }
 
   const handleDeleteCamera = async (camera: Camera) => {
+<<<<<<< HEAD
     if (!window.confirm(`Remove "${camera.name}" from camera monitoring?`)) {
+=======
+    if (
+      !window.confirm(
+        `Remove "${camera.name}"? Existing recordings and events will remain in history.`,
+      )
+    ) {
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
       return
     }
 
@@ -1185,12 +1260,17 @@ function Cameras() {
         await stopCamera(token, camera.id)
       }
 
+<<<<<<< HEAD
       const result = await deleteCamera(token, camera.id)
       setMessage(
         result?.status === 'disabled'
           ? `${camera.name} was disabled instead of deleted because it has recordings or events. Its history has been preserved.`
           : `${camera.name} was removed from monitoring.`,
       )
+=======
+      await deleteCamera(token, camera.id)
+      setMessage(`${camera.name} removed. Recordings were not deleted.`)
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
       await loadCameras()
     } catch (err: any) {
       setError(
@@ -1264,7 +1344,11 @@ function Cameras() {
                 {editingCamera ? 'Edit Camera' : 'Add Camera'}
               </h3>
               <p>
+<<<<<<< HEAD
                 Detect a USB camera or discover an ONVIF camera, then test and add it.
+=======
+                Configure camera details and its main stream.
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
               </p>
             </div>
 
@@ -1276,6 +1360,7 @@ function Cameras() {
             </button>
           </div>
 
+<<<<<<< HEAD
           <div className="camera-discovery-panel">
             <div className="camera-discovery-actions">
               <button
@@ -1330,6 +1415,8 @@ function Cameras() {
             ))}
           </div>
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
           <div className="camera-form-grid">
             <label>
               Camera name
@@ -1353,6 +1440,7 @@ function Cameras() {
                   })
                 }
               >
+<<<<<<< HEAD
                 <option value="RTSP">RTSP / IP camera</option>
                 <option value="ONVIF">ONVIF / IP camera</option>
                 <option value="NVR">NVR</option>
@@ -1438,6 +1526,30 @@ function Cameras() {
                 </label>
               </>
             )}
+=======
+                <option value="RTSP">RTSP</option>
+                <option value="ONVIF">ONVIF</option>
+                <option value="NVR">NVR</option>
+                <option value="LOCAL">Local</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </label>
+
+            <label className="wide">
+              RTSP/stream URL
+              <input
+                value={form.main_stream_url}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    main_stream_url: event.target.value,
+                  })
+                }
+                placeholder="rtsp://camera-host/stream"
+                required
+              />
+            </label>
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
             <label>
               Username
@@ -1501,6 +1613,7 @@ function Cameras() {
             </label>
           </div>
 
+<<<<<<< HEAD
           {newConnectionResult && (
             <div
               className={`camera-alert ${
@@ -1516,6 +1629,8 @@ function Cameras() {
             </div>
           )}
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
           <div className="camera-form-toggles">
             <label>
               <input
@@ -1561,6 +1676,7 @@ function Cameras() {
           </div>
 
           <div className="camera-form-actions">
+<<<<<<< HEAD
             <button
               disabled={testingNewConnection || savingCamera}
               onClick={testNewConnection}
@@ -1576,6 +1692,10 @@ function Cameras() {
                 : editingCamera
                   ? 'Save Changes'
                   : 'Save & Start Camera'}
+=======
+            <button disabled={savingCamera} type="submit">
+              {savingCamera ? 'Saving...' : 'Save Camera'}
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             </button>
           </div>
         </form>
@@ -2238,6 +2358,7 @@ function Cameras() {
                           : 'Disabled'}
                       </strong>
                     </div>
+<<<<<<< HEAD
 
                     <div>
                       <span>Live Animals</span>
@@ -2265,6 +2386,10 @@ function Cameras() {
                     </div>
                   )}
 
+=======
+                  </div>
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                   {testResults[camera.id] && (
                     <div className="camera-test-result">
                       {testResults[camera.id]}

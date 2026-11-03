@@ -26,7 +26,10 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+<<<<<<< HEAD
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '').strip()
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
@@ -170,9 +173,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+<<<<<<< HEAD
     "DEFAULT_THROTTLE_RATES": {
         "auth_registration": "5/hour",
     },
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 }
 
 SIMPLE_JWT = {

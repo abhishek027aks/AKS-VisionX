@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+=======
+﻿import { useState, type FormEvent } from 'react'
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 import axios from 'axios'
 import {
   BrowserRouter,
@@ -24,6 +28,7 @@ import Recordings from './pages/Recordings'
 
 const API = '/api'
 
+<<<<<<< HEAD
 type GoogleCredentialResponse = {
   credential: string
 }
@@ -55,11 +60,14 @@ declare global {
   }
 }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 function Login({
   onLogin,
 }: {
   onLogin: (token: string) => void
 }) {
+<<<<<<< HEAD
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -188,6 +196,12 @@ function Login({
       }
     }
   }, [googleClientId])
+=======
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
   const login = async (e: FormEvent) => {
     e.preventDefault()
@@ -196,6 +210,7 @@ function Login({
     setError('')
 
     try {
+<<<<<<< HEAD
       if (mode === 'register') {
         const response = await axios.post(`${API}/auth/register/`, {
           username,
@@ -223,6 +238,28 @@ function Login({
           (mode === 'register'
             ? 'Registration failed. Check your details.'
             : 'Login failed. Check username and password.'),
+=======
+      const response = await axios.post(`${API}/auth/token/`, {
+        username,
+        password,
+      })
+
+      const access = response.data.access
+
+      if (!access) {
+        throw new Error('No access token received')
+      }
+
+      localStorage.setItem('aks_token', access)
+      onLogin(access)
+    } catch (err: any) {
+      console.error('LOGIN ERROR:', err)
+
+      setError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          'Login failed. Check username and password.',
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
       )
     } finally {
       setLoading(false)
@@ -240,6 +277,7 @@ function Login({
           Intelligent Camera Monitoring & AI Surveillance
         </p>
 
+<<<<<<< HEAD
         <div className="auth-mode-tabs" role="tablist" aria-label="Account access">
           <button
             aria-selected={mode === 'login'}
@@ -319,11 +357,42 @@ function Login({
 
           {error && <div className="alert error" role="alert">{error}</div>}
 
+=======
+        <form onSubmit={login}>
+          <label>Username</label>
+
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter username"
+            autoComplete="username"
+            required
+          />
+
+          <label>Password</label>
+
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            placeholder="Enter password"
+            autoComplete="current-password"
+            required
+          />
+
+          {error && (
+            <div className="alert error">
+              {error}
+            </div>
+          )}
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
           <button
             className="primary-button"
             disabled={loading}
             type="submit"
           >
+<<<<<<< HEAD
             {loading
               ? mode === 'register' ? 'Creating account...' : 'Signing in...'
               : mode === 'register' ? 'Create account' : 'Sign In'}
@@ -349,6 +418,12 @@ function Login({
           </p>
         )}
 
+=======
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
         <div className="login-footer">
           AKS VisionX • Secure Monitoring Platform
         </div>
@@ -403,3 +478,8 @@ function App() {
 export default App
 
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d

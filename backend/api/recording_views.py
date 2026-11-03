@@ -53,7 +53,11 @@ def recording_ai_detections(request, pk):
         name="Super Admin"
     ).exists():
         if (
+<<<<<<< HEAD
             recording.camera.organization_id
+=======
+            recording.organization_id
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             != user.organization_id
         ):
             return Response(

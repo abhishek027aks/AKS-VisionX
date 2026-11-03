@@ -33,10 +33,15 @@ from .views import (
     operator_test,
     super_admin_test,
     tracking_session_summary,
+<<<<<<< HEAD
     tracking_analytics,
     viewer_test,
 )
 from .auth_views import google_auth, google_auth_config, register
+=======
+    viewer_test,
+)
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
 
 router = DefaultRouter()
@@ -137,18 +142,22 @@ urlpatterns = [
     ),
 
     path(
+<<<<<<< HEAD
         "analytics/tracking/",
         tracking_analytics,
         name="tracking-analytics",
     ),
 
     path(
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
         "auth/token/",
         LoginTokenObtainPairView.as_view(),
         name="token-obtain-pair",
     ),
 
     path(
+<<<<<<< HEAD
         "auth/register/",
         register,
         name="auth-register",
@@ -167,6 +176,8 @@ urlpatterns = [
     ),
 
     path(
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
         "auth/token/refresh/",
         TokenRefreshView.as_view(),
         name="token-refresh",

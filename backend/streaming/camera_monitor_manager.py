@@ -167,7 +167,10 @@ class CameraMonitorManager:
             "running": running,
             "connection_state": connection_state,
             "stream_healthy": stream_healthy,
+<<<<<<< HEAD
             "connection_error": runtime.get("connection_error"),
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             "last_frame_at": last_frame_at,
             "last_frame_age_ms": last_frame_age_ms,
             "consecutive_failures": int(
@@ -187,12 +190,18 @@ class CameraMonitorManager:
                     "camera_id": camera_id,
                     "person_count": 0,
                     "vehicle_count": 0,
+<<<<<<< HEAD
                     "animal_count": 0,
                     "animal_species_counts": {},
                     "object_count": 0,
                     "updated_at": None,
                     "overlay_available": False,
                     "error": None,
+=======
+                    "object_count": 0,
+                    "updated_at": None,
+                    "overlay_available": False,
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 }
 
             return dict(state)
@@ -207,7 +216,10 @@ class CameraMonitorManager:
 
         person_count = 0
         vehicle_count = 0
+<<<<<<< HEAD
         animal_count = 0
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
         for detection in detections:
             object_type = str(
@@ -278,10 +290,13 @@ class CameraMonitorManager:
                 color = (255, 100, 0)
                 vehicle_count += 1
 
+<<<<<<< HEAD
             elif object_type == "ANIMAL":
                 color = (0, 220, 100)
                 animal_count += 1
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             else:
                 color = (0, 220, 255)
 
@@ -294,12 +309,18 @@ class CameraMonitorManager:
             )
 
             text = (
+<<<<<<< HEAD
                 f"{label.upper()}"
             )
             tracking_id = detection.get("tracking_id")
             if tracking_id:
                 text += f" #{tracking_id}"
             text += f" {confidence * 100:.0f}%"
+=======
+                f"{label.upper()} "
+                f"{confidence * 100:.0f}%"
+            )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
             cv2.putText(
                 output,
@@ -318,7 +339,10 @@ class CameraMonitorManager:
         hud = (
             f"PERSONS: {person_count}   "
             f"VEHICLES: {vehicle_count}   "
+<<<<<<< HEAD
             f"ANIMALS: {animal_count}   "
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
             f"OBJECTS: {len(detections)}"
         )
 
@@ -353,9 +377,12 @@ class CameraMonitorManager:
         camera,
         stream_url,
     ):
+<<<<<<< HEAD
         if stream_url.lower().startswith("local://"):
             return stream_url
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
         username = camera.username
         password = camera.get_credential()
 
@@ -513,6 +540,7 @@ class CameraMonitorManager:
                         if detection["object_type"]
                         == "VEHICLE"
                     )
+<<<<<<< HEAD
                     animal_detections = [
                         detection
                         for detection in detections
@@ -528,6 +556,8 @@ class CameraMonitorManager:
                         animal_species_counts[species] = (
                             animal_species_counts.get(species, 0) + 1
                         )
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
                     with self._lock:
                         self._ai_states[
@@ -536,33 +566,50 @@ class CameraMonitorManager:
                             "camera_id": camera.id,
                             "person_count": person_count,
                             "vehicle_count": vehicle_count,
+<<<<<<< HEAD
                             "animal_count": len(animal_detections),
                             "animal_species_counts": (
                                 animal_species_counts
                             ),
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                             "object_count": len(
                                 detections
                             ),
                             "updated_at": timezone.now(),
                             "overlay_available": True,
+<<<<<<< HEAD
                             "error": None,
                         }
 
                 except CameraInferenceError as exc:
+=======
+                        }
+
+                except CameraInferenceError:
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                     # AI failure must never stop camera capture.
                     camera_ai_frame_hub.publish(
                         camera.id,
                         frame,
                     )
+<<<<<<< HEAD
                     self._set_ai_error(camera.id, exc)
 
                 except Exception as exc:
+=======
+
+                except Exception:
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                     # AI/database failure must never stop camera capture.
                     camera_ai_frame_hub.publish(
                         camera.id,
                         frame,
                     )
+<<<<<<< HEAD
                     self._set_ai_error(camera.id, exc)
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
                 now = timezone.now().timestamp()
 
@@ -582,6 +629,7 @@ class CameraMonitorManager:
         finally:
             close_old_connections()
 
+<<<<<<< HEAD
     def _set_ai_error(self, camera_id, error):
         with self._lock:
             state = self._ai_states.get(camera_id, {})
@@ -598,6 +646,8 @@ class CameraMonitorManager:
                 "error": str(error),
             }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     def _recording_worker(
         self,
         recorder,
@@ -723,6 +773,7 @@ class CameraMonitorManager:
                         Camera.Status.ONLINE,
                     )
 
+<<<<<<< HEAD
                     if camera.ai_supported:
                         ai_thread = threading.Thread(
                             target=self._ai_worker,
@@ -743,6 +794,23 @@ class CameraMonitorManager:
                         with self._lock:
                             self._ai_states.pop(camera_id, None)
                         camera_ai_frame_hub.clear(camera_id)
+=======
+                    ai_thread = threading.Thread(
+                        target=self._ai_worker,
+                        args=(
+                            camera,
+                            service,
+                            ai_queue,
+                            cycle_stop_event,
+                        ),
+                        daemon=True,
+                        name=(
+                            f"camera-ai-{camera_id}"
+                        ),
+                    )
+
+                    ai_thread.start()
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
                     if camera.recording_enabled:
                         recorder = self._build_recorder(
@@ -869,7 +937,10 @@ class CameraMonitorManager:
                                 runtime[
                                     "consecutive_failures"
                                 ] = 0
+<<<<<<< HEAD
                                 runtime["connection_error"] = None
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
                             # Publish to live clients FIRST.
                             camera_frame_hub.publish(
@@ -879,11 +950,18 @@ class CameraMonitorManager:
 
                             # Give AI the latest available frame
                             # without ever blocking RTSP capture.
+<<<<<<< HEAD
                             if ai_thread is not None:
                                 self._offer_latest(
                                     ai_queue,
                                     frame,
                                 )
+=======
+                            self._offer_latest(
+                                ai_queue,
+                                frame,
+                            )
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
                             # Give recorder a frame without blocking
                             # the live capture loop.
@@ -907,11 +985,16 @@ class CameraMonitorManager:
                                 )
                                 last_status_update = now
 
+<<<<<<< HEAD
                         except CameraInferenceError as exc:
+=======
+                        except CameraInferenceError:
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                             self._set_camera_status(
                                 camera,
                                 Camera.Status.ERROR,
                             )
+<<<<<<< HEAD
                             with self._lock:
                                 runtime = self._camera_runtime.setdefault(
                                     camera_id,
@@ -929,10 +1012,16 @@ class CameraMonitorManager:
                             break
 
                 except CameraInferenceError as exc:
+=======
+                            break
+
+                except CameraInferenceError:
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                     self._set_camera_status(
                         camera,
                         Camera.Status.OFFLINE,
                     )
+<<<<<<< HEAD
                     with self._lock:
                         runtime = self._camera_runtime.setdefault(
                             camera_id,
@@ -949,10 +1038,15 @@ class CameraMonitorManager:
                     )
 
                 except Exception as exc:
+=======
+
+                except Exception:
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                     self._set_camera_status(
                         camera,
                         Camera.Status.ERROR,
                     )
+<<<<<<< HEAD
                     with self._lock:
                         runtime = self._camera_runtime.setdefault(
                             camera_id,
@@ -967,6 +1061,8 @@ class CameraMonitorManager:
                         f"{type(exc).__name__}",
                         flush=True,
                     )
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
                 finally:
                     # End only the current connection cycle.

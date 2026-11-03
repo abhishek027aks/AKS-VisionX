@@ -350,7 +350,10 @@
 
 .ov-ai-stat.person strong { color: var(--ov-green); }
 .ov-ai-stat.vehicle strong { color: var(--ov-red); }
+<<<<<<< HEAD
 .ov-ai-stat.animal strong { color: var(--ov-amber); }
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 .ov-ai-stat.tracking strong { color: var(--ov-purple); }
 
 .ov-list {

@@ -111,6 +111,7 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(22, 133, 255, 0.12);
 }
 
+<<<<<<< HEAD
 .auth-mode-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -137,6 +138,8 @@ button:disabled {
   color: #f3f7fc;
 }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 .primary-button {
   width: 100%;
   margin-top: 25px;
@@ -148,6 +151,7 @@ button:disabled {
   font-weight: 750;
 }
 
+<<<<<<< HEAD
 .auth-divider {
   display: flex;
   align-items: center;
@@ -184,6 +188,8 @@ button:disabled {
   text-align: center;
 }
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 .login-footer {
   margin-top: 25px;
   padding-top: 20px;

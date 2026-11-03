@@ -165,6 +165,7 @@ Recording
 AI Analysis
 ```
 
+<<<<<<< HEAD
 On the **Cameras → Add Camera** form, use **Detect USB / Webcams** to scan
 camera indexes on the PC running the backend, then choose **Use this camera**.
 Use **Discover ONVIF cameras** to search the local network; select a result,
@@ -185,6 +186,8 @@ integration for each camera vendor and model.
 The **Recording** and **AI processing** options are enabled by default; AI
 detections are produced by the backend model, not by camera hardware.
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 If a camera or NVR does not expose a usable stream, protocol or supported API, software cannot access the video magically.
 
 Hardware limitations are also respected:
@@ -227,11 +230,14 @@ AI performance depends on:
 * Available RAM
 * Processing configuration
 
+<<<<<<< HEAD
 AI inference runs on the VisionX backend, so the camera does not need
 manufacturer-specific AI. Ultralytics fetches the default YOLO weights when
 first needed; first-time model setup therefore requires internet access
 unless the weights are already cached.
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 ---
 
 # ✨ Main Features
@@ -991,6 +997,7 @@ The structure will be refined during implementation.
 
 ---
 
+<<<<<<< HEAD
 ## Local development on Windows
 
 1. Install Python 3.11 and Node.js.
@@ -1027,6 +1034,8 @@ email is linked to that Google identity.
 
 ---
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 # 🔐 Security First
 
 AKS VisionX will **not claim to be 100% unhackable**.
@@ -1065,10 +1074,13 @@ AKS VisionX will respect actual hardware and network limitations.
 
 ### Camera limitations
 
+<<<<<<< HEAD
 Local/USB camera indexes refer to devices attached to the PC running the
 backend. For analog cameras, use a supported capture device or an NVR that
 exposes an RTSP/ONVIF stream.
 
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 ```text
 No microphone
     ↓

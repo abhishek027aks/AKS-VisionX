@@ -35,12 +35,15 @@ class User(AbstractUser):
         blank=True,
         related_name="users",
     )
+<<<<<<< HEAD
     google_subject = models.CharField(
         max_length=255,
         unique=True,
         null=True,
         blank=True,
     )
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
     def __str__(self):
         return self.username

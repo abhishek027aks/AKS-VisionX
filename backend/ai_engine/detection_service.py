@@ -23,6 +23,7 @@ class YOLODetectionService:
 
     OBJECT_TYPE_MAP = {
         "person": "PERSON",
+<<<<<<< HEAD
         "airplane": "VEHICLE",
         "bicycle": "VEHICLE",
         "boat": "VEHICLE",
@@ -54,6 +55,13 @@ class YOLODetectionService:
         "fox": "ANIMAL",
         "wolf": "ANIMAL",
         "monkey": "ANIMAL",
+=======
+        "car": "VEHICLE",
+        "motorcycle": "VEHICLE",
+        "bus": "VEHICLE",
+        "truck": "VEHICLE",
+        "bicycle": "VEHICLE",
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
     }
 
     def __init__(
@@ -122,7 +130,10 @@ class YOLODetectionService:
             class_id = int(box.cls.item())
 
             label = names[class_id]
+<<<<<<< HEAD
             normalized_label = str(label).strip().lower()
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
 
             confidence = float(box.conf.item())
 
@@ -137,7 +148,11 @@ class YOLODetectionService:
             normalized_height = height / frame_height
 
             object_type = self.OBJECT_TYPE_MAP.get(
+<<<<<<< HEAD
                 normalized_label,
+=======
+                label,
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 "OBJECT",
             )
 
@@ -169,12 +184,15 @@ class YOLODetectionService:
                     "metadata": {
                         "model": self.model_path,
                         "class_id": class_id,
+<<<<<<< HEAD
                         "category": object_type.lower(),
                         **(
                             {"species": normalized_label}
                             if object_type == "ANIMAL"
                             else {}
                         ),
+=======
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                     },
                 }
             )

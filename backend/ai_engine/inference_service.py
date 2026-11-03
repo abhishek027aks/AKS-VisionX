@@ -92,6 +92,7 @@ class AIInferenceService:
             if zone:
                 metadata["zone"] = zone
 
+<<<<<<< HEAD
             object_type = ai_detection["object_type"]
             metadata.setdefault("category", object_type.lower())
             if object_type == Detection.ObjectType.ANIMAL:
@@ -104,6 +105,14 @@ class AIInferenceService:
                 organization=camera.organization,
                 camera=camera,
                 object_type=object_type,
+=======
+            detection = Detection.objects.create(
+                organization=camera.organization,
+                camera=camera,
+                object_type=ai_detection[
+                    "object_type"
+                ],
+>>>>>>> 32e82354c709145cb1b25fa9ae0911d3f7b8107d
                 label=ai_detection.get(
                     "label",
                     "",
