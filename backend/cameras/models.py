@@ -1,0 +1,183 @@
+﻿from django.conf import settings
+from django.db import models
+from security.credentials import encrypt_credential, decrypt_credential
+
+
+class Camera(models.Model):
+    class ConnectionType(models.TextChoices):
+        ONVIF = "ONVIF", "ONVIF"
+        RTSP = "RTSP", "RTSP"
+        NVR = "NVR", "NVR"
+        LOCAL = "LOCAL", "Local"
+        OTHER = "OTHER", "Other"
+
+    class Status(models.TextChoices):
+        UNKNOWN = "UNKNOWN", "Unknown"
+        ONLINE = "ONLINE", "Online"
+        OFFLINE = "OFFLINE", "Offline"
+        ERROR = "ERROR", "Error"
+
+    organization = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="cameras",
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_cameras",
+    )
+
+    name = models.CharField(max_length=200)
+
+    manufacturer = models.CharField(max_length=100, blank=True)
+    model = models.CharField(max_length=150, blank=True)
+    serial_number = models.CharField(max_length=150, blank=True)
+    description = models.TextField(blank=True)
+    location = models.CharField(max_length=255, blank=True)
+
+    connection_type = models.CharField(
+        max_length=20,
+        choices=ConnectionType.choices,
+        default=ConnectionType.RTSP,
+    )
+
+    host = models.CharField(max_length=255, blank=True)
+
+    port = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    username = models.CharField(max_length=150, blank=True)
+
+    # Temporary foundation field.
+    # Encryption will be implemented in Security Foundation.
+    credential_encrypted = models.TextField(blank=True)
+
+    def set_credential(self, value):
+        self.credential_encrypted = encrypt_credential(value)
+
+    def get_credential(self):
+        return decrypt_credential(self.credential_encrypted)
+
+    onvif_supported = models.BooleanField(default=False)
+    rtsp_supported = models.BooleanField(default=False)
+    ptz_supported = models.BooleanField(default=False)
+    audio_supported = models.BooleanField(default=False)
+    ai_supported = models.BooleanField(default=False)
+    recording_enabled = models.BooleanField(default=True)
+
+    enabled = models.BooleanField(default=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.UNKNOWN,
+    )
+
+    last_seen = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="unique_camera_name_per_organization",
+            )
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class CameraStream(models.Model):
+    class StreamType(models.TextChoices):
+        MAIN = "MAIN", "Main"
+        SUB = "SUB", "Sub"
+        LOW = "LOW", "Low"
+        OTHER = "OTHER", "Other"
+
+    class Protocol(models.TextChoices):
+        RTSP = "RTSP", "RTSP"
+        HTTP = "HTTP", "HTTP"
+        HTTPS = "HTTPS", "HTTPS"
+        OTHER = "OTHER", "Other"
+
+    camera = models.ForeignKey(
+        Camera,
+        on_delete=models.CASCADE,
+        related_name="streams",
+    )
+
+    name = models.CharField(max_length=100)
+
+    stream_type = models.CharField(
+        max_length=20,
+        choices=StreamType.choices,
+        default=StreamType.MAIN,
+    )
+
+    protocol = models.CharField(
+        max_length=20,
+        choices=Protocol.choices,
+        default=Protocol.RTSP,
+    )
+
+    url = models.TextField()
+
+    width = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    height = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    fps = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    codec = models.CharField(
+        max_length=50,
+        blank=True,
+    )
+
+    bitrate_kbps = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    enabled = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["camera", "stream_type"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["camera", "name"],
+                name="unique_stream_name_per_camera",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.camera.name} - {self.name}"
+
+
+

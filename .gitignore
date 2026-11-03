@@ -1,0 +1,77 @@
+﻿# ================================
+# AKS VisionX - Git Ignore
+# ================================
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+.venv-ai/
+.venv-*/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+*.env
+!.env.example
+
+# Django / databases
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Camera recordings / generated media
+data/recordings/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# AI models / generated test files
+*.pt
+*.onnx
+*.weights
+*.jpg
+*.jpeg
+*.png
+
+# Backups
+*.bak
+*.bak_*
+*.bak2
+*.backup
+*.before-*
+*.prof_backup
+*.professional_backup
+*.performance_backup
+*.ptz_backup
+*.reliability_backup
+*.ai_patch_backup
+*_backup/
+phase*_backup*/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+*.temp
+
+# OS
+Thumbs.db
+.DS_Store

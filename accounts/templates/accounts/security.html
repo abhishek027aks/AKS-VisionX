@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Account Security - VyapaarX</title>
+</head>
+<body>
+
+    <h1>VyapaarX</h1>
+    <h2>Account Security</h2>
+
+    <p>
+        <strong>Username:</strong>
+        {{ request.user.username }}
+    </p>
+
+    <p>
+        <strong>Email:</strong>
+        {{ request.user.email }}
+    </p>
+
+    <hr>
+
+    <h3>Password</h3>
+
+    <p>
+        Keep your VyapaarX account protected with a strong password.
+    </p>
+
+    <p>
+        <a href="{% url 'accounts:password_change' %}">
+            Change Password
+        </a>
+    </p>
+
+    <hr>
+
+    <p>
+        <a href="{% url 'accounts:profile' %}">
+            My Profile
+        </a>
+    </p>
+
+    <p>
+        <a href="{% url 'accounts:dashboard' %}">
+            Back to Dashboard
+        </a>
+    </p>
+
+</body>
+</html>
